@@ -1,0 +1,21 @@
+{
+  "appTitle": "Voice Recorder",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "statusReady": "Ready to record",
+  "statusRecording": "Recording...",
+  "statusSaved": "Saved to: {path}",
+  "@statusSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "permissionDeniedTitle": "Permission Denied",
+  "permissionDeniedMessage": "Microphone permission is required to record audio.",
+  "allRecordsTitle": "All Records",
+  "settingsTitle": "Settings"
+}
+

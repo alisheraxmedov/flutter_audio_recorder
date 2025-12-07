@@ -1,0 +1,10 @@
+{
+  "appTitle": "Диктофон",
+  "statusReady": "Готов к записи",
+  "statusRecording": "Запись...",
+  "statusSaved": "Сохранено в: {path}",
+  "permissionDeniedTitle": "Отказано в доступе",
+  "permissionDeniedMessage": "Для записи звука требуется разрешение микрофона.",
+  "allRecordsTitle": "Все записи",
+  "settingsTitle": "Настройки"
+}

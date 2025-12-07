@@ -1,0 +1,10 @@
+{
+  "appTitle": "Ovoz Yozuvchisi",
+  "statusReady": "Yozishga tayyor",
+  "statusRecording": "Yozilmoqda...",
+  "statusSaved": "Saqlandi: {path}",
+  "permissionDeniedTitle": "Ruxsat etilmadi",
+  "permissionDeniedMessage": "Ovoz yozish uchun mikrofonga ruxsat kerak.",
+  "allRecordsTitle": "Barcha yozuvlar",
+  "settingsTitle": "Sozlamalar"
+}
