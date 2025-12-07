@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
@@ -6,8 +5,6 @@ import 'package:recorder/features/recorder/controllers/recorder_controller.dart'
 import 'package:recorder/features/recorder/widgets/circle_button.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 import 'package:recorder/l10n/app_localizations.dart';
-import 'package:recorder/features/recorder/views/all_records_page.dart';
-import 'package:recorder/features/recorder/views/settings_page.dart';
 
 class RecorderPage extends StatelessWidget {
   const RecorderPage({super.key});
@@ -201,47 +198,7 @@ class RecorderPage extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: size.height * 0.05),
-          // Bottom Navigation Pill
-          Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: refSize * 0.05,
-              vertical: size.height * 0.025,
-            ),
-            padding: EdgeInsets.symmetric(
-              vertical: size.height * 0.02,
-              horizontal: refSize * 0.1,
-            ),
-            decoration: BoxDecoration(
-              color: ColorClass.buttonBg.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(refSize * 0.1),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => Get.to(() => const AllRecordsPage()),
-                  child: const Icon(
-                    CupertinoIcons.list_bullet,
-                    color: ColorClass.textSecondary,
-                  ),
-                ), // Records List
-                const Icon(
-                  CupertinoIcons.mic_fill,
-                  color: ColorClass.white,
-                ), // Record (Current)
-                GestureDetector(
-                  onTap: () => Get.to(() => const SettingsPage()),
-                  child: const Icon(
-                    CupertinoIcons.settings,
-                    color: ColorClass.textSecondary,
-                  ),
-                ), // Settings
-              ],
-            ),
-          ),
-          SizedBox(height: size.height * 0.012),
+          SizedBox(height: size.height * 0.15),
         ],
       ),
     );
