@@ -36,6 +36,4 @@ flutter run
 flutter run -d linux
 ```
 
-## License
 
-MIT License
