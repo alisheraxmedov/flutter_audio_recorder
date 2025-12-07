@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
@@ -55,63 +57,90 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  bool get _isDesktop =>
+      !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
+
   void _showFormatBottomSheet(
     BuildContext context,
     SettingsController controller,
     double refSize,
   ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: ColorClass.darkBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(refSize * 0.05),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextWidget(
-                text: AppLocalizations.of(context)!.audioFormat,
-                textColor: ColorClass.white,
-                fontSize: refSize * 0.05,
-                fontWeight: FontWeight.bold,
-              ),
-              SizedBox(height: refSize * 0.05),
-              Column(
-                children: [
-                  _buildFormatOption(
-                    context,
-                    controller,
-                    AudioEncoder.aacLc,
-                    AppLocalizations.of(context)!.formatAacLc,
-                    refSize,
-                  ),
-                  _buildFormatOption(
-                    context,
-                    controller,
-                    AudioEncoder.opus,
-                    AppLocalizations.of(context)!.formatOpus,
-                    refSize,
-                  ),
-                  _buildFormatOption(
-                    context,
-                    controller,
-                    AudioEncoder.wav,
-                    AppLocalizations.of(context)!.formatWav,
-                    refSize,
-                  ),
-                ],
-              ),
-              SizedBox(height: refSize * 0.05),
-            ],
+    final content = _buildFormatContent(context, controller, refSize);
+
+    if (_isDesktop) {
+      // Use Dialog on Desktop to avoid overflow
+      Get.dialog(
+        Dialog(
+          backgroundColor: ColorClass.darkBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        );
-      },
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(24.0),
+            child: content,
+          ),
+        ),
+      );
+    } else {
+      // Use BottomSheet on Mobile
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: ColorClass.darkBackground,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        builder: (context) {
+          return Container(
+            padding: EdgeInsets.all(refSize * 0.05),
+            child: content,
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildFormatContent(
+    BuildContext context,
+    SettingsController controller,
+    double refSize,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextWidget(
+          text: AppLocalizations.of(context)!.audioFormat,
+          textColor: ColorClass.white,
+          fontSize: _isDesktop ? 20 : refSize * 0.05,
+          fontWeight: FontWeight.bold,
+        ),
+        SizedBox(height: _isDesktop ? 24 : refSize * 0.05),
+        _buildFormatOption(
+          context,
+          controller,
+          AudioEncoder.aacLc,
+          AppLocalizations.of(context)!.formatAacLc,
+          refSize,
+        ),
+        _buildFormatOption(
+          context,
+          controller,
+          AudioEncoder.opus,
+          AppLocalizations.of(context)!.formatOpus,
+          refSize,
+        ),
+        _buildFormatOption(
+          context,
+          controller,
+          AudioEncoder.wav,
+          AppLocalizations.of(context)!.formatWav,
+          refSize,
+        ),
+        SizedBox(height: _isDesktop ? 8 : refSize * 0.05),
+      ],
     );
   }
 
@@ -174,58 +203,89 @@ class SettingsPage extends StatelessWidget {
     SettingsController controller,
     double refSize,
   ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: ColorClass.darkBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(refSize * 0.05),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextWidget(
-                text: AppLocalizations.of(context)!.language,
-                textColor: ColorClass.white,
-                fontSize: refSize * 0.05,
-                fontWeight: FontWeight.bold,
-              ),
-              SizedBox(height: refSize * 0.05),
-              Column(
-                children: [
-                  LanguageOptionItem(
-                    title: AppLocalizations.of(context)!.english,
-                    locale: const Locale('en'),
-                    controller: controller,
-                    refSize: refSize,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  LanguageOptionItem(
-                    title: AppLocalizations.of(context)!.uzbek,
-                    locale: const Locale('uz'),
-                    controller: controller,
-                    refSize: refSize,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  LanguageOptionItem(
-                    title: AppLocalizations.of(context)!.russian,
-                    locale: const Locale('ru'),
-                    controller: controller,
-                    refSize: refSize,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              SizedBox(height: refSize * 0.05),
-            ],
+    final content = _buildLanguageContent(context, controller, refSize);
+
+    if (_isDesktop) {
+      // Use Dialog on Desktop to avoid overflow
+      Get.dialog(
+        Dialog(
+          backgroundColor: ColorClass.darkBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        );
-      },
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(24.0),
+            child: content,
+          ),
+        ),
+      );
+    } else {
+      // Use BottomSheet on Mobile
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: ColorClass.darkBackground,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        builder: (context) {
+          return Container(
+            padding: EdgeInsets.all(refSize * 0.05),
+            child: content,
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildLanguageContent(
+    BuildContext context,
+    SettingsController controller,
+    double refSize,
+  ) {
+    // On desktop use fixed sizes, on mobile use refSize
+    final double desktopRefSize = 400;
+    final double effectiveRefSize = _isDesktop ? desktopRefSize : refSize;
+    final VoidCallback closeAction = _isDesktop
+        ? Get.back
+        : () => Navigator.pop(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextWidget(
+          text: AppLocalizations.of(context)!.language,
+          textColor: ColorClass.white,
+          fontSize: _isDesktop ? 20 : refSize * 0.05,
+          fontWeight: FontWeight.bold,
+        ),
+        SizedBox(height: _isDesktop ? 24 : refSize * 0.05),
+        LanguageOptionItem(
+          title: AppLocalizations.of(context)!.english,
+          locale: const Locale('en'),
+          controller: controller,
+          refSize: effectiveRefSize,
+          onTap: closeAction,
+        ),
+        LanguageOptionItem(
+          title: AppLocalizations.of(context)!.uzbek,
+          locale: const Locale('uz'),
+          controller: controller,
+          refSize: effectiveRefSize,
+          onTap: closeAction,
+        ),
+        LanguageOptionItem(
+          title: AppLocalizations.of(context)!.russian,
+          locale: const Locale('ru'),
+          controller: controller,
+          refSize: effectiveRefSize,
+          onTap: closeAction,
+        ),
+        SizedBox(height: _isDesktop ? 8 : refSize * 0.05),
+      ],
     );
   }
 }
