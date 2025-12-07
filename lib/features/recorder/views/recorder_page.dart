@@ -4,6 +4,7 @@ import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/widgets/circle_button.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
+import 'package:recorder/features/recorder/widgets/wave_widget.dart';
 import 'package:recorder/l10n/app_localizations.dart';
 
 class RecorderPage extends StatelessWidget {
@@ -12,7 +13,7 @@ class RecorderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Instantiate logic
-    final controller = Get.put(RecorderController());
+    final controller = Get.find<RecorderController>();
     final size = MediaQuery.of(context).size;
     final double refSize = size.shortestSide;
 
@@ -49,59 +50,7 @@ class RecorderPage extends StatelessWidget {
           ),
           const Spacer(),
           // Glowing Visualizer (Circle)
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Outer/Back Glow
-              Container(
-                width: refSize * 0.55,
-                height: refSize * 0.55,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      ColorClass.glowPurple.withValues(alpha: 0.3),
-                      ColorClass.darkBackground.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-              // The Ring
-              Container(
-                width: refSize * 0.45,
-                height: refSize * 0.45,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [ColorClass.glowPurple, ColorClass.glowBlue],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: ColorClass.glowBlue.withValues(alpha: 0.6),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                    BoxShadow(
-                      color: ColorClass.glowPurple.withValues(alpha: 0.6),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: ColorClass.darkBackground,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          WaveWidget(controller: controller, size: refSize * 0.8),
           const Spacer(),
           // Record Name
           Row(

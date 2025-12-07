@@ -3,11 +3,13 @@ import 'package:recorder/core/utils/file_saver/file_saver.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/services/recorder_service.dart';
 import 'package:recorder/l10n/app_localizations.dart';
+import 'package:recorder/features/recorder/controllers/settings_controller.dart';
 
 enum RecorderStatus { ready, recording, paused, saved }
 
 class RecorderController extends GetxController {
   final RecorderService _recorderService = RecorderService();
+  final SettingsController _settingsController = Get.find<SettingsController>();
 
   // Observables
   RxString duration = "00:00:00".obs;
@@ -44,12 +46,17 @@ class RecorderController extends GetxController {
       _seconds = 0;
       duration.value = "00:00:00";
 
+      // Get settings
+      final encoder = _settingsController.currentEncoder.value;
+      final ext = _settingsController.getEncoderExt(encoder);
+
       // Generate unique name
-      final fileName = 'fs_recorder_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final fileName =
+          'fs_recorder_${DateTime.now().millisecondsSinceEpoch}.$ext';
       recordName.value = fileName;
       status.value = RecorderStatus.recording;
 
-      await _recorderService.start(fileName: fileName);
+      await _recorderService.start(fileName: fileName, encoder: encoder);
 
       isRecording.value = true;
       isPaused.value = false;
@@ -68,11 +75,33 @@ class RecorderController extends GetxController {
     }
   }
 
+  RxDouble amplitude = 0.0.obs;
+  Timer? _ampTimer;
+
+  // ... (existing code)
+
+  RxList<String> records = <String>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchRecords();
+  }
+
+  Future<void> fetchRecords() async {
+    final list = await _recorderService.getAllRecordings();
+    records.assignAll(list);
+  }
+
+  // ... (existing methods)
+
   Future<void> stopRecording() async {
     final path = await _recorderService.stop();
     isRecording.value = false;
     isPaused.value = false;
     _timer?.cancel();
+    _ampTimer?.cancel(); // Stop polling amplitude
+    amplitude.value = 0.0;
 
     if (path != null) {
       status.value = RecorderStatus.saved;
@@ -81,11 +110,16 @@ class RecorderController extends GetxController {
 
       // Trigger save/download
       await saveFile(path, recordName.value);
+
+      // Refresh list
+      await fetchRecords();
     }
   }
 
   void _startTimer() {
     _timer?.cancel();
+    _ampTimer?.cancel();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _seconds++;
       final durationObj = Duration(seconds: _seconds);
@@ -96,6 +130,23 @@ class RecorderController extends GetxController {
       String twoDigitHours = twoDigits(durationObj.inHours);
 
       duration.value = "$twoDigitHours:$twoDigitMinutes:$twoDigitSeconds";
+    });
+
+    _ampTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) async {
+      if (isRecording.value && !isPaused.value) {
+        final amp = await _recorderService.getAmplitude();
+        // Normalize dB (-60 to 0) to 0.0 to 1.0 range
+        // Typical speech is around -20 to -5 dB
+        double currentDb = amp.current;
+        if (currentDb < -60) currentDb = -60;
+        if (currentDb > 0) currentDb = 0;
+
+        // Linear normalization
+        // -60 -> 0.0
+        // 0 -> 1.0
+        double norm = 1 - (currentDb / -60);
+        amplitude.value = norm.clamp(0.0, 1.0);
+      }
     });
   }
 }

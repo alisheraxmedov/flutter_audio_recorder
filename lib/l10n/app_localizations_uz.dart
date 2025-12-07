@@ -34,4 +34,34 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Sozlamalar';
+
+  @override
+  String get language => 'Til';
+
+  @override
+  String get english => 'Ingliz tili';
+
+  @override
+  String get uzbek => 'O‘zbek tili';
+
+  @override
+  String get russian => 'Rus tili';
+
+  @override
+  String get audioFormat => 'Audio Format';
+
+  @override
+  String get formatAacLc => 'AAC (M4A)';
+
+  @override
+  String get formatOpus => 'Opus (OGG)';
+
+  @override
+  String get formatWav => 'WAV';
+
+  @override
+  String get formatPcm16bit => 'PCM 16-bit (WAV)';
+
+  @override
+  String get formatFlac => 'FLAC';
 }

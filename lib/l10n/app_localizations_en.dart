@@ -34,4 +34,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Settings';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get uzbek => 'Uzbek';
+
+  @override
+  String get russian => 'Russian';
+
+  @override
+  String get audioFormat => 'Audio Format';
+
+  @override
+  String get formatAacLc => 'AAC (M4A)';
+
+  @override
+  String get formatOpus => 'Opus (OGG)';
+
+  @override
+  String get formatWav => 'WAV';
+
+  @override
+  String get formatPcm16bit => 'PCM 16-bit (WAV)';
+
+  @override
+  String get formatFlac => 'FLAC';
 }

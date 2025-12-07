@@ -16,6 +16,16 @@
   "permissionDeniedTitle": "Permission Denied",
   "permissionDeniedMessage": "Microphone permission is required to record audio.",
   "allRecordsTitle": "All Records",
-  "settingsTitle": "Settings"
+  "settingsTitle": "Settings",
+  "language": "Language",
+  "english": "English",
+  "uzbek": "Uzbek",
+  "russian": "Russian",
+  "audioFormat": "Audio Format",
+  "formatAacLc": "AAC (M4A)",
+  "formatOpus": "Opus (OGG)",
+  "formatWav": "WAV",
+  "formatPcm16bit": "PCM 16-bit (WAV)",
+  "formatFlac": "FLAC"
 }
 

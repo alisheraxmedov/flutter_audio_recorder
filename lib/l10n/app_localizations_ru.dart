@@ -34,4 +34,34 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsTitle => 'Настройки';
+
+  @override
+  String get language => 'Язык';
+
+  @override
+  String get english => 'Английский';
+
+  @override
+  String get uzbek => 'Узбекский';
+
+  @override
+  String get russian => 'Русский';
+
+  @override
+  String get audioFormat => 'Формат аудио';
+
+  @override
+  String get formatAacLc => 'AAC (M4A)';
+
+  @override
+  String get formatOpus => 'Opus (OGG)';
+
+  @override
+  String get formatWav => 'WAV';
+
+  @override
+  String get formatPcm16bit => 'PCM 16-бит (WAV)';
+
+  @override
+  String get formatFlac => 'FLAC';
 }

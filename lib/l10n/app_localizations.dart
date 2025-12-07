@@ -147,6 +147,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settingsTitle;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @uzbek.
+  ///
+  /// In en, this message translates to:
+  /// **'Uzbek'**
+  String get uzbek;
+
+  /// No description provided for @russian.
+  ///
+  /// In en, this message translates to:
+  /// **'Russian'**
+  String get russian;
+
+  /// No description provided for @audioFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio Format'**
+  String get audioFormat;
+
+  /// No description provided for @formatAacLc.
+  ///
+  /// In en, this message translates to:
+  /// **'AAC (M4A)'**
+  String get formatAacLc;
+
+  /// No description provided for @formatOpus.
+  ///
+  /// In en, this message translates to:
+  /// **'Opus (OGG)'**
+  String get formatOpus;
+
+  /// No description provided for @formatWav.
+  ///
+  /// In en, this message translates to:
+  /// **'WAV'**
+  String get formatWav;
+
+  /// No description provided for @formatPcm16bit.
+  ///
+  /// In en, this message translates to:
+  /// **'PCM 16-bit (WAV)'**
+  String get formatPcm16bit;
+
+  /// No description provided for @formatFlac.
+  ///
+  /// In en, this message translates to:
+  /// **'FLAC'**
+  String get formatFlac;
 }
 
 class _AppLocalizationsDelegate

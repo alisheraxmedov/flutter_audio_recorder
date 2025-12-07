@@ -6,5 +6,15 @@
   "permissionDeniedTitle": "Отказано в доступе",
   "permissionDeniedMessage": "Для записи звука требуется разрешение микрофона.",
   "allRecordsTitle": "Все записи",
-  "settingsTitle": "Настройки"
+  "settingsTitle": "Настройки",
+  "language": "Язык",
+  "english": "Английский",
+  "uzbek": "Узбекский",
+  "russian": "Русский",
+  "audioFormat": "Формат аудио",
+  "formatAacLc": "AAC (M4A)",
+  "formatOpus": "Opus (OGG)",
+  "formatWav": "WAV",
+  "formatPcm16bit": "PCM 16-бит (WAV)",
+  "formatFlac": "FLAC"
 }

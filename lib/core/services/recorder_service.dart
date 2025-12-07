@@ -14,7 +14,10 @@ class RecorderService {
   }
 
   // Start Recording
-  Future<void> start({required String fileName}) async {
+  Future<void> start({
+    required String fileName,
+    required AudioEncoder encoder,
+  }) async {
     try {
       if (await hasPermission()) {
         String filePath = '';
@@ -28,13 +31,10 @@ class RecorderService {
           filePath = '${recordsDir.path}/$fileName';
         }
 
-        // Check for supported encoder
-        AudioEncoder encoder = AudioEncoder.aacLc;
+        // Check if encoder is supported, fallback if needed
         if (!await _audioRecorder.isEncoderSupported(encoder)) {
-          encoder = AudioEncoder.opus;
-          if (!await _audioRecorder.isEncoderSupported(encoder)) {
-            encoder = AudioEncoder.wav;
-          }
+          print("Encoder $encoder not supported, falling back to AAC");
+          encoder = AudioEncoder.aacLc;
         }
 
         await _audioRecorder.start(
@@ -78,5 +78,36 @@ class RecorderService {
   // Is Recording Stream
   Future<bool> isRecording() async {
     return await _audioRecorder.isRecording();
+  }
+
+  // Get All Recordings
+  Future<List<String>> getAllRecordings() async {
+    if (kIsWeb) {
+      // On Web, we can't easily list files unless we use IndexedDB or similar.
+      // For now, return empty list or manage via state in Controller.
+      return [];
+    } else {
+      try {
+        final Directory appDir = await getApplicationDocumentsDirectory();
+        final Directory recordsDir = Directory('${appDir.path}/recordings');
+        if (await recordsDir.exists()) {
+          // List files and sort by modification date (newest first)
+          final List<FileSystemEntity> entities = recordsDir.listSync();
+          final List<File> files = entities.whereType<File>().toList();
+
+          files.sort(
+            (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+          );
+
+          return files.map((e) => e.path).toList();
+        }
+        return [];
+      } catch (e) {
+        if (kDebugMode) {
+          print("Error listing recordings: $e");
+        }
+        return [];
+      }
+    }
   }
 }

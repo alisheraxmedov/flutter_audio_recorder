@@ -6,5 +6,15 @@
   "permissionDeniedTitle": "Ruxsat etilmadi",
   "permissionDeniedMessage": "Ovoz yozish uchun mikrofonga ruxsat kerak.",
   "allRecordsTitle": "Barcha yozuvlar",
-  "settingsTitle": "Sozlamalar"
+  "settingsTitle": "Sozlamalar",
+  "language": "Til",
+  "english": "Ingliz tili",
+  "uzbek": "O‘zbek tili",
+  "russian": "Rus tili",
+  "audioFormat": "Audio Format",
+  "formatAacLc": "AAC (M4A)",
+  "formatOpus": "Opus (OGG)",
+  "formatWav": "WAV",
+  "formatPcm16bit": "PCM 16-bit (WAV)",
+  "formatFlac": "FLAC"
 }
