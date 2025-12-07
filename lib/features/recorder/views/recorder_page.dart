@@ -14,6 +14,7 @@ class RecorderPage extends StatelessWidget {
     // Instantiate logic
     final controller = Get.put(RecorderController());
     final size = MediaQuery.of(context).size;
+    final double refSize = size.shortestSide;
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
@@ -23,7 +24,7 @@ class RecorderPage extends StatelessWidget {
         title: TextWidget(
           text: 'Voice Recorder',
           textColor: ColorClass.white,
-          fontSize: size.width * 0.045,
+          fontSize: refSize * 0.045,
         ),
         centerTitle: true,
         actions: [
@@ -41,7 +42,7 @@ class RecorderPage extends StatelessWidget {
             () => TextWidget(
               text: controller.duration.value,
               textColor: ColorClass.white,
-              fontSize: size.width * 0.12, // Responsive font size
+              fontSize: refSize * 0.10, // Responsive font size
               fontWeight: FontWeight.w300,
               letterSpacing: 2,
             ),
@@ -53,8 +54,8 @@ class RecorderPage extends StatelessWidget {
             children: [
               // Outer/Back Glow
               Container(
-                width: size.width * 0.75,
-                height: size.width * 0.75,
+                width: refSize * 0.55,
+                height: refSize * 0.55,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -67,8 +68,8 @@ class RecorderPage extends StatelessWidget {
               ),
               // The Ring
               Container(
-                width: size.width * 0.60,
-                height: size.width * 0.60,
+                width: refSize * 0.45,
+                height: refSize * 0.45,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -110,15 +111,15 @@ class RecorderPage extends StatelessWidget {
                 () => TextWidget(
                   text: controller.recordName.value,
                   textColor: ColorClass.white,
-                  fontSize: size.width * 0.045,
+                  fontSize: refSize * 0.045,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(width: size.width * 0.02),
+              SizedBox(width: refSize * 0.02),
               Icon(
                 Icons.edit_outlined,
                 color: ColorClass.textSecondary,
-                size: size.width * 0.045,
+                size: refSize * 0.045,
               ),
             ],
           ),
@@ -128,7 +129,7 @@ class RecorderPage extends StatelessWidget {
             () => TextWidget(
               text: controller.recordInfo.value,
               textColor: ColorClass.textSecondary,
-              fontSize: size.width * 0.035,
+              fontSize: refSize * 0.035,
             ),
           ),
           SizedBox(height: size.height * 0.05),
@@ -139,15 +140,15 @@ class RecorderPage extends StatelessWidget {
               // Stop Button (Left)
               CircleButton(
                 icon: Icons.stop,
-                onTap: () {},
-                size: size.width * 0.13,
+                onTap: () => controller.stopRecording(),
+                size: refSize * 0.12,
                 iconColor: ColorClass.white,
                 bgColor: ColorClass.buttonBg,
               ),
               // Main Record/Pause Button
               Container(
-                width: size.width * 0.21,
-                height: size.width * 0.21,
+                width: refSize * 0.18,
+                height: refSize * 0.18,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: ColorClass.white,
@@ -159,20 +160,22 @@ class RecorderPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.mic,
-                    color: Colors.black,
-                    size: size.width * 0.09,
+                child: Obx(
+                  () => IconButton(
+                    icon: Icon(
+                      controller.isRecording.value ? Icons.pause : Icons.mic,
+                      color: Colors.black,
+                      size: refSize * 0.08,
+                    ),
+                    onPressed: () => controller.toggleRecording(),
                   ),
-                  onPressed: () {},
                 ),
               ),
               // Close Button (Right)
               CircleButton(
                 icon: Icons.close,
                 onTap: () {},
-                size: size.width * 0.13,
+                size: refSize * 0.12,
                 iconColor: ColorClass.white,
                 bgColor: ColorClass.buttonBg,
               ),
@@ -182,16 +185,16 @@ class RecorderPage extends StatelessWidget {
           // Bottom Navigation Pill
           Container(
             margin: EdgeInsets.symmetric(
-              horizontal: size.width * 0.05,
+              horizontal: refSize * 0.05,
               vertical: size.height * 0.025,
             ),
             padding: EdgeInsets.symmetric(
               vertical: size.height * 0.02,
-              horizontal: size.width * 0.1,
+              horizontal: refSize * 0.1,
             ),
             decoration: BoxDecoration(
               color: ColorClass.buttonBg.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(size.width * 0.1),
+              borderRadius: BorderRadius.circular(refSize * 0.1),
               border: Border.all(color: Colors.white10),
             ),
             child: Row(
