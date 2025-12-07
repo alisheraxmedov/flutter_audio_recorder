@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:recorder/core/utils/file_saver/file_saver.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/services/recorder_service.dart';
+import 'package:recorder/l10n/app_localizations.dart';
+
+enum RecorderStatus { ready, recording, paused, saved }
 
 class RecorderController extends GetxController {
   final RecorderService _recorderService = RecorderService();
@@ -9,7 +12,8 @@ class RecorderController extends GetxController {
   // Observables
   RxString duration = "00:00:00".obs;
   RxString recordName = "Record 1".obs;
-  RxString recordInfo = "Ready to record".obs;
+  Rx<RecorderStatus> status = RecorderStatus.ready.obs;
+  RxString savedFilePath = "".obs;
   RxBool isRecording = false.obs;
   RxBool isPaused = false.obs;
 
@@ -41,9 +45,9 @@ class RecorderController extends GetxController {
       duration.value = "00:00:00";
 
       // Generate unique name
-      final fileName = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final fileName = 'fs_recorder_${DateTime.now().millisecondsSinceEpoch}.m4a';
       recordName.value = fileName;
-      recordInfo.value = "Recording...";
+      status.value = RecorderStatus.recording;
 
       await _recorderService.start(fileName: fileName);
 
@@ -52,10 +56,15 @@ class RecorderController extends GetxController {
 
       _startTimer();
     } else {
-      Get.snackbar(
-        "Permission Denied",
-        "Microphone permission is required to record audio.",
-      );
+      if (Get.context != null) {
+        final loc = AppLocalizations.of(Get.context!)!;
+        Get.snackbar(loc.permissionDeniedTitle, loc.permissionDeniedMessage);
+      } else {
+        Get.snackbar(
+          "Permission Denied",
+          "Microphone permission is required to record audio.",
+        );
+      }
     }
   }
 
@@ -66,9 +75,10 @@ class RecorderController extends GetxController {
     _timer?.cancel();
 
     if (path != null) {
-      recordInfo.value = "Saved to: $path";
+      status.value = RecorderStatus.saved;
+      savedFilePath.value = path;
       print("Recorded file path: $path");
-      // Here you can save 'path' to a database or list
+
       // Trigger save/download
       await saveFile(path, recordName.value);
     }

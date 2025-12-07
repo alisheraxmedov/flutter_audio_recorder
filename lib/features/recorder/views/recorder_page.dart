@@ -5,6 +5,9 @@ import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/widgets/circle_button.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
+import 'package:recorder/l10n/app_localizations.dart';
+import 'package:recorder/features/recorder/views/all_records_page.dart';
+import 'package:recorder/features/recorder/views/settings_page.dart';
 
 class RecorderPage extends StatelessWidget {
   const RecorderPage({super.key});
@@ -22,7 +25,7 @@ class RecorderPage extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: TextWidget(
-          text: 'Voice Recorder',
+          text: AppLocalizations.of(context)!.appTitle,
           textColor: ColorClass.white,
           fontSize: refSize * 0.045,
         ),
@@ -125,13 +128,30 @@ class RecorderPage extends StatelessWidget {
           ),
           SizedBox(height: size.height * 0.01),
           // Metadata
-          Obx(
-            () => TextWidget(
-              text: controller.recordInfo.value,
+          Obx(() {
+            String statusText;
+            switch (controller.status.value) {
+              case RecorderStatus.ready:
+                statusText = AppLocalizations.of(context)!.statusReady;
+                break;
+              case RecorderStatus.recording:
+                statusText = AppLocalizations.of(context)!.statusRecording;
+                break;
+              case RecorderStatus.paused:
+                statusText = AppLocalizations.of(context)!.statusRecording;
+                break;
+              case RecorderStatus.saved:
+                statusText = AppLocalizations.of(
+                  context,
+                )!.statusSaved(controller.savedFilePath.value);
+                break;
+            }
+            return TextWidget(
+              text: statusText,
               textColor: ColorClass.textSecondary,
               fontSize: refSize * 0.035,
-            ),
-          ),
+            );
+          }),
           SizedBox(height: size.height * 0.05),
           // Controls
           Row(
@@ -199,18 +219,24 @@ class RecorderPage extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Icon(
-                  CupertinoIcons.list_bullet,
-                  color: ColorClass.textSecondary,
+              children: [
+                GestureDetector(
+                  onTap: () => Get.to(() => const AllRecordsPage()),
+                  child: const Icon(
+                    CupertinoIcons.list_bullet,
+                    color: ColorClass.textSecondary,
+                  ),
                 ), // Records List
-                Icon(
+                const Icon(
                   CupertinoIcons.mic_fill,
                   color: ColorClass.white,
                 ), // Record (Current)
-                Icon(
-                  CupertinoIcons.settings,
-                  color: ColorClass.textSecondary,
+                GestureDetector(
+                  onTap: () => Get.to(() => const SettingsPage()),
+                  child: const Icon(
+                    CupertinoIcons.settings,
+                    color: ColorClass.textSecondary,
+                  ),
                 ), // Settings
               ],
             ),
