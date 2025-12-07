@@ -207,6 +207,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'FLAC'**
   String get formatFlac;
+
+  /// No description provided for @noRecordsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No records found'**
+  String get noRecordsFound;
 }
 
 class _AppLocalizationsDelegate

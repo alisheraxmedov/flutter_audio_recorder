@@ -64,4 +64,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formatFlac => 'FLAC';
+
+  @override
+  String get noRecordsFound => 'No records found';
 }

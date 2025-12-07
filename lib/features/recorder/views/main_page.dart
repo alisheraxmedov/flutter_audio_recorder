@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
@@ -6,6 +8,7 @@ import 'package:recorder/features/recorder/controllers/main_controller.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/controllers/settings_controller.dart';
 import 'package:recorder/features/recorder/views/all_records_page.dart';
+import 'package:recorder/features/recorder/views/desktop_main_page.dart'; // Import Desktop Page
 import 'package:recorder/features/recorder/views/recorder_page.dart';
 import 'package:recorder/features/recorder/views/settings_page.dart';
 import 'package:recorder/features/recorder/widgets/custom_bottom_nav_item.dart';
@@ -19,7 +22,12 @@ class MainPage extends StatelessWidget {
     Get.put(RecorderController());
     final controller = Get.put(MainController());
     final size = MediaQuery.of(context).size;
-    final double refSize = size.shortestSide;
+    final double refSize = size.shortestSide.clamp(0.0, 500.0);
+
+    if (!kIsWeb &&
+        (Platform.isLinux || Platform.isWindows || Platform.isMacOS)) {
+      return const DesktopMainPage();
+    }
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,

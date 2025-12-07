@@ -64,4 +64,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get formatFlac => 'FLAC';
+
+  @override
+  String get noRecordsFound => 'Hozircha yozuvlar yo\'q';
 }

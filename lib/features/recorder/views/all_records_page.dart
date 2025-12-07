@@ -12,7 +12,7 @@ class AllRecordsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<RecorderController>();
     final size = MediaQuery.of(context).size;
-    final double refSize = size.shortestSide;
+    final double refSize = size.shortestSide.clamp(0.0, 500.0);
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
@@ -30,7 +30,7 @@ class AllRecordsPage extends StatelessWidget {
         if (controller.records.isEmpty) {
           return Center(
             child: TextWidget(
-              text: "No records found",
+              text: AppLocalizations.of(context)!.noRecordsFound,
               textColor: ColorClass.textSecondary,
               fontSize: refSize * 0.035,
             ),

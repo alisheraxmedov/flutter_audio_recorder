@@ -15,7 +15,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<SettingsController>();
     final size = MediaQuery.of(context).size;
-    final double refSize = size.shortestSide;
+    final double refSize = size.shortestSide.clamp(0.0, 500.0);
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,

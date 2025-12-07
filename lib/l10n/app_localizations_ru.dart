@@ -64,4 +64,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get formatFlac => 'FLAC';
+
+  @override
+  String get noRecordsFound => 'Записей пока нет';
 }

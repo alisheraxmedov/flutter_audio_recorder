@@ -16,5 +16,6 @@
   "formatOpus": "Opus (OGG)",
   "formatWav": "WAV",
   "formatPcm16bit": "PCM 16-бит (WAV)",
-  "formatFlac": "FLAC"
+  "formatFlac": "FLAC",
+  "noRecordsFound": "Записей пока нет"
 }

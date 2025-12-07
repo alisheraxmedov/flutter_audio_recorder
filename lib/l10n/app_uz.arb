@@ -16,5 +16,6 @@
   "formatOpus": "Opus (OGG)",
   "formatWav": "WAV",
   "formatPcm16bit": "PCM 16-bit (WAV)",
-  "formatFlac": "FLAC"
+  "formatFlac": "FLAC",
+  "noRecordsFound": "Hozircha yozuvlar yo'q"
 }
