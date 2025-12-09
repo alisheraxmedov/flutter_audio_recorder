@@ -27,6 +27,19 @@
   "formatWav": "WAV",
   "formatPcm16bit": "PCM 16-bit (WAV)",
   "formatFlac": "FLAC",
-  "noRecordsFound": "No records found"
+  "noRecordsFound": "No records found",
+  "deleteRecordingTitle": "Delete Recording?",
+  "deleteRecordingMessage": "Are you sure you want to delete \"{name}\"?",
+  "@deleteRecordingMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "renameRecording": "Rename Recording",
+  "enterNewName": "Enter new name",
+  "rename": "Rename"
 }
-

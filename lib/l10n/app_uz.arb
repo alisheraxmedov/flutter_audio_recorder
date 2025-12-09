@@ -9,7 +9,7 @@
   "settingsTitle": "Sozlamalar",
   "language": "Til",
   "english": "Ingliz tili",
-  "uzbek": "O‘zbek tili",
+  "uzbek": "O'zbek tili",
   "russian": "Rus tili",
   "audioFormat": "Audio Format",
   "formatAacLc": "AAC (M4A)",
@@ -17,5 +17,12 @@
   "formatWav": "WAV",
   "formatPcm16bit": "PCM 16-bit (WAV)",
   "formatFlac": "FLAC",
-  "noRecordsFound": "Hozircha yozuvlar yo'q"
+  "noRecordsFound": "Hozircha yozuvlar yo'q",
+  "deleteRecordingTitle": "Yozuvni o'chirishni xohlaysizmi?",
+  "deleteRecordingMessage": "\"{name}\" ni o'chirishni xohlaysizmi?",
+  "cancel": "Bekor qilish",
+  "delete": "O'chirish",
+  "renameRecording": "Yozuv nomini o'zgartirish",
+  "enterNewName": "Yangi nom kiriting",
+  "rename": "O'zgartirish"
 }

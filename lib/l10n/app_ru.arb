@@ -17,5 +17,12 @@
   "formatWav": "WAV",
   "formatPcm16bit": "PCM 16-бит (WAV)",
   "formatFlac": "FLAC",
-  "noRecordsFound": "Записей пока нет"
+  "noRecordsFound": "Записей пока нет",
+  "deleteRecordingTitle": "Удалить запись?",
+  "deleteRecordingMessage": "Вы уверены, что хотите удалить \"{name}\"?",
+  "cancel": "Отмена",
+  "delete": "Удалить",
+  "renameRecording": "Переименовать запись",
+  "enterNewName": "Введите новое имя",
+  "rename": "Переименовать"
 }
