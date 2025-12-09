@@ -15,12 +15,13 @@ class AllRecordsPage extends StatelessWidget {
     final controller = Get.find<RecorderController>();
     final size = MediaQuery.of(context).size;
     final double refSize = size.shortestSide.clamp(0.0, 500.0);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
       appBar: AppBar(
         title: TextWidget(
-          text: AppLocalizations.of(context)!.allRecordsTitle,
+          text: l10n.allRecordsTitle,
           textColor: ColorClass.white,
           fontSize: refSize * 0.045,
         ),
@@ -32,7 +33,7 @@ class AllRecordsPage extends StatelessWidget {
         if (controller.records.isEmpty) {
           return Center(
             child: TextWidget(
-              text: AppLocalizations.of(context)!.noRecordsFound,
+              text: l10n.noRecordsFound,
               textColor: ColorClass.textSecondary,
               fontSize: refSize * 0.035,
             ),
@@ -52,6 +53,7 @@ class AllRecordsPage extends StatelessWidget {
               path: path,
               name: name,
               refSize: refSize,
+              l10n: l10n,
             );
           },
         );
@@ -65,28 +67,27 @@ class AllRecordsPage extends StatelessWidget {
     required String path,
     required String name,
     required double refSize,
+    required AppLocalizations l10n,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: refSize * 0.03),
+      margin: EdgeInsets.only(bottom: refSize * 0.04),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: ColorClass.buttonBg,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(refSize * 0.03),
         border: Border.all(color: Colors.white10),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          leading: Container(
-            padding: EdgeInsets.all(refSize * 0.025),
-            decoration: BoxDecoration(
-              color: ColorClass.glowBlue.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.audiotrack,
-              color: ColorClass.glowBlue,
-              size: refSize * 0.05,
-            ),
+          tilePadding: EdgeInsets.symmetric(
+            horizontal: refSize * 0.035,
+            vertical: refSize * 0.02,
+          ),
+          leading: Icon(
+            Icons.audiotrack,
+            color: ColorClass.glowBlue,
+            size: refSize * 0.06,
           ),
           title: TextWidget(
             text: name,
@@ -118,15 +119,35 @@ class AllRecordsPage extends StatelessWidget {
                   refSize: refSize,
                   onTap: () {
                     // TODO: Implement play/pause
-                    Get.snackbar('Play', 'Playing: $name');
                   },
+                ),
+                // Edit/Rename button
+                _buildActionButton(
+                  icon: Icons.edit_outlined,
+                  color: Colors.orangeAccent,
+                  refSize: refSize,
+                  onTap: () => _showRenameDialog(
+                    context,
+                    controller,
+                    path,
+                    name,
+                    refSize,
+                    l10n,
+                  ),
                 ),
                 // Delete button
                 _buildActionButton(
                   icon: Icons.delete_outline,
                   color: Colors.redAccent,
                   refSize: refSize,
-                  onTap: () => _confirmDelete(context, controller, path, name),
+                  onTap: () => _confirmDelete(
+                    context,
+                    controller,
+                    path,
+                    name,
+                    refSize,
+                    l10n,
+                  ),
                 ),
                 // Share button
                 _buildActionButton(
@@ -159,7 +180,7 @@ class AllRecordsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(refSize * 0.03),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
-        child: Icon(icon, color: color, size: refSize * 0.06),
+        child: Icon(icon, color: color, size: refSize * 0.04),
       ),
     );
   }
@@ -169,27 +190,35 @@ class AllRecordsPage extends StatelessWidget {
     RecorderController controller,
     String path,
     String name,
+    double refSize,
+    AppLocalizations l10n,
   ) {
     Get.dialog(
       AlertDialog(
         backgroundColor: ColorClass.darkBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(refSize * 0.03),
+        ),
         title: TextWidget(
-          text: 'Delete Recording?',
+          text: l10n.deleteRecordingTitle,
           textColor: ColorClass.white,
-          fontSize: 18,
+          fontSize: refSize * 0.04,
           fontWeight: FontWeight.bold,
         ),
         content: TextWidget(
-          text: 'Are you sure you want to delete "$name"?',
+          text: l10n.deleteRecordingMessage(name),
           textColor: ColorClass.textSecondary,
-          fontSize: 14,
+          fontSize: refSize * 0.03,
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: ColorClass.textSecondary),
+            child: Text(
+              l10n.cancel,
+              style: TextStyle(
+                color: ColorClass.textSecondary,
+                fontSize: refSize * 0.03,
+              ),
             ),
           ),
           TextButton(
@@ -200,15 +229,17 @@ class AllRecordsPage extends StatelessWidget {
                 if (await file.exists()) {
                   await file.delete();
                   controller.records.remove(path);
-                  Get.snackbar('Deleted', '$name has been deleted');
                 }
               } catch (e) {
-                Get.snackbar('Error', 'Failed to delete file');
+                // Silent fail
               }
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.delete,
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: refSize * 0.03,
+              ),
             ),
           ),
         ],
@@ -220,7 +251,120 @@ class AllRecordsPage extends StatelessWidget {
     try {
       await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
     } catch (e) {
-      Get.snackbar('Error', 'Failed to share file');
+      // Silent fail
     }
+  }
+
+  void _showRenameDialog(
+    BuildContext context,
+    RecorderController controller,
+    String path,
+    String currentName,
+    double refSize,
+    AppLocalizations l10n,
+  ) {
+    // Extract file extension
+    final extension = currentName.contains('.')
+        ? '.${currentName.split('.').last}'
+        : '';
+    final nameWithoutExtension = currentName.contains('.')
+        ? currentName.substring(0, currentName.lastIndexOf('.'))
+        : currentName;
+
+    final textController = TextEditingController(text: nameWithoutExtension);
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: ColorClass.darkBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(refSize * 0.03),
+        ),
+        title: TextWidget(
+          text: l10n.renameRecording,
+          textColor: ColorClass.white,
+          fontSize: refSize * 0.04,
+          fontWeight: FontWeight.bold,
+        ),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          style: TextStyle(color: ColorClass.white, fontSize: refSize * 0.035),
+          decoration: InputDecoration(
+            hintText: l10n.enterNewName,
+            hintStyle: TextStyle(
+              color: ColorClass.textSecondary.withValues(alpha: 0.5),
+              fontSize: refSize * 0.03,
+            ),
+            suffixText: extension,
+            suffixStyle: TextStyle(
+              color: ColorClass.textSecondary,
+              fontSize: refSize * 0.03,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(refSize * 0.02),
+              borderSide: const BorderSide(color: ColorClass.textSecondary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(refSize * 0.02),
+              borderSide: const BorderSide(color: ColorClass.glowBlue),
+            ),
+            filled: true,
+            fillColor: ColorClass.buttonBg,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              l10n.cancel,
+              style: TextStyle(
+                color: ColorClass.textSecondary,
+                fontSize: refSize * 0.03,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newName = textController.text.trim();
+              if (newName.isEmpty) {
+                return;
+              }
+
+              Get.back();
+
+              try {
+                final file = File(path);
+                if (await file.exists()) {
+                  final directory = file.parent.path;
+                  final newPath = '$directory/$newName$extension';
+
+                  // Check if file with new name already exists
+                  if (await File(newPath).exists()) {
+                    return;
+                  }
+
+                  await file.rename(newPath);
+
+                  // Update the records list
+                  final index = controller.records.indexOf(path);
+                  if (index != -1) {
+                    controller.records[index] = newPath;
+                  }
+                }
+              } catch (e) {
+                // Silent fail
+              }
+            },
+            child: Text(
+              l10n.rename,
+              style: TextStyle(
+                color: ColorClass.glowBlue,
+                fontSize: refSize * 0.03,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
