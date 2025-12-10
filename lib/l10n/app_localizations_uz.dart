@@ -42,7 +42,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get english => 'Ingliz tili';
 
   @override
-  String get uzbek => 'O‘zbek tili';
+  String get uzbek => 'O\'zbek tili';
 
   @override
   String get russian => 'Rus tili';
@@ -67,4 +67,27 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get noRecordsFound => 'Hozircha yozuvlar yo\'q';
+
+  @override
+  String get deleteRecordingTitle => 'Yozuvni o\'chirishni xohlaysizmi?';
+
+  @override
+  String deleteRecordingMessage(String name) {
+    return '\"$name\" ni o\'chirishni xohlaysizmi?';
+  }
+
+  @override
+  String get cancel => 'Bekor qilish';
+
+  @override
+  String get delete => 'O\'chirish';
+
+  @override
+  String get renameRecording => 'Yozuv nomini o\'zgartirish';
+
+  @override
+  String get enterNewName => 'Yangi nom kiriting';
+
+  @override
+  String get rename => 'O\'zgartirish';
 }

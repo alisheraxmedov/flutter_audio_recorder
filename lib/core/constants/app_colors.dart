@@ -12,4 +12,10 @@ class ColorClass {
   static const Color glowBlue = Color(0xFF2E6EE8); // Blue glow hint
   static const Color textSecondary = Colors.white70;
   static const Color buttonBg = Color(0xFF1C1F2E); // Dark button background
+
+  // Folder & Action Colors
+  static const Color folderIcon = Colors.amberAccent;
+  static const Color editIcon = Colors.orangeAccent;
+  static const Color moveIcon = Colors.purpleAccent;
+  static const Color deleteIcon = Colors.redAccent;
 }

@@ -47,5 +47,13 @@ app.*.map.json
 # File structure docs
 FILE_STRUCTURE.md
 
+
 # Own files
 alisher.txt
+PLAN.md
+FOLDER_MANAGEMENT_PLAN.md
+
+
+# FOR TESTING
+lib/features/custom_widgets
+lib/features/recorder/views/test_page.dart

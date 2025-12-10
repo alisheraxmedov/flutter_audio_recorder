@@ -17,47 +17,141 @@ class AllRecordsPage extends StatelessWidget {
     final double refSize = size.shortestSide.clamp(0.0, 500.0);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      backgroundColor: ColorClass.darkBackground,
-      appBar: AppBar(
-        title: TextWidget(
-          text: l10n.allRecordsTitle,
-          textColor: ColorClass.white,
-          fontSize: refSize * 0.045,
-        ),
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: ColorClass.white),
-        centerTitle: true,
-      ),
-      body: Obx(() {
-        if (controller.records.isEmpty) {
-          return Center(
-            child: TextWidget(
-              text: l10n.noRecordsFound,
-              textColor: ColorClass.textSecondary,
-              fontSize: refSize * 0.035,
-            ),
-          );
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (controller.canGoBack) {
+          controller.goBack();
+        } else {
+          Get.back();
         }
-
-        return ListView.builder(
-          padding: EdgeInsets.all(refSize * 0.05),
-          itemCount: controller.records.length,
-          itemBuilder: (context, index) {
-            final path = controller.records[index];
-            final name = path.split('/').last;
-
-            return _buildRecordExpansionTile(
-              context: context,
-              controller: controller,
-              path: path,
-              name: name,
-              refSize: refSize,
-              l10n: l10n,
+      },
+      child: Scaffold(
+        backgroundColor: ColorClass.darkBackground,
+        appBar: AppBar(
+          title: Obx(() {
+            final path = controller.currentPath.value;
+            final folderName = path.split(Platform.pathSeparator).last;
+            // Show "All Records" if root, otherwise folder name
+            final title = !controller.canGoBack
+                ? l10n.allRecordsTitle
+                : folderName;
+            return TextWidget(
+              text: title,
+              textColor: ColorClass.white,
+              fontSize: refSize * 0.045,
             );
-          },
-        );
-      }),
+          }),
+          backgroundColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: ColorClass.white),
+          centerTitle: true,
+          leading: Obx(() {
+            // Explicitly listen to currentPath changes
+            final _ = controller.currentPath.value;
+            if (controller.canGoBack) {
+              return IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: controller.goBack,
+              );
+            }
+            return const BackButton();
+          }),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.create_new_folder_outlined),
+              tooltip: "New Folder",
+              onPressed: () =>
+                  _showCreateFolderDialog(context, controller, refSize),
+            ),
+          ],
+        ),
+        body: Obx(() {
+          if (controller.entities.isEmpty) {
+            return Center(
+              child: TextWidget(
+                text: l10n.noRecordsFound,
+                textColor: ColorClass.textSecondary,
+                fontSize: refSize * 0.035,
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(refSize * 0.05),
+            itemCount: controller.entities.length,
+            itemBuilder: (context, index) {
+              final entity = controller.entities[index];
+              final name = entity.path.split(Platform.pathSeparator).last;
+
+              if (entity is Directory) {
+                return _buildFolderTile(
+                  context: context,
+                  controller: controller,
+                  path: entity.path,
+                  name: name,
+                  refSize: refSize,
+                  l10n: l10n,
+                );
+              } else {
+                return _buildRecordExpansionTile(
+                  context: context,
+                  controller: controller,
+                  path: entity.path,
+                  name: name,
+                  refSize: refSize,
+                  l10n: l10n,
+                );
+              }
+            },
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildFolderTile({
+    required BuildContext context,
+    required RecorderController controller,
+    required String path,
+    required String name,
+    required double refSize,
+    required AppLocalizations l10n,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: refSize * 0.04),
+      decoration: BoxDecoration(
+        color: ColorClass.buttonBg.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(refSize * 0.03),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: refSize * 0.04,
+          vertical: refSize * 0.015,
+        ),
+        leading: Icon(
+          Icons.folder_open_rounded,
+          color: ColorClass.folderIcon,
+          size: refSize * 0.07,
+        ),
+        title: TextWidget(
+          text: name,
+          textColor: ColorClass.white,
+          fontSize: refSize * 0.035,
+          fontWeight: FontWeight.w500,
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios_rounded,
+          color: ColorClass.textSecondary,
+          size: refSize * 0.035,
+        ),
+        onTap: () => controller.openFolder(path),
+        onLongPress: () {
+          // Future: Add menu to rename/delete folder
+          _showFolderOptions(context, controller, path, name, refSize, l10n);
+        },
+      ),
     );
   }
 
@@ -124,7 +218,7 @@ class AllRecordsPage extends StatelessWidget {
                 // Edit/Rename button
                 _buildActionButton(
                   icon: Icons.edit_outlined,
-                  color: Colors.orangeAccent,
+                  color: ColorClass.editIcon,
                   refSize: refSize,
                   onTap: () => _showRenameDialog(
                     context,
@@ -135,10 +229,18 @@ class AllRecordsPage extends StatelessWidget {
                     l10n,
                   ),
                 ),
+                // Move button
+                _buildActionButton(
+                  icon: Icons.drive_file_move_outline,
+                  color: ColorClass.moveIcon,
+                  refSize: refSize,
+                  onTap: () =>
+                      _showMoveDialog(context, controller, path, refSize),
+                ),
                 // Delete button
                 _buildActionButton(
                   icon: Icons.delete_outline,
-                  color: Colors.redAccent,
+                  color: ColorClass.deleteIcon,
                   refSize: refSize,
                   onTap: () => _confirmDelete(
                     context,
@@ -225,10 +327,12 @@ class AllRecordsPage extends StatelessWidget {
             onPressed: () async {
               Get.back();
               try {
-                final file = File(path);
-                if (await file.exists()) {
-                  await file.delete();
-                  controller.records.remove(path);
+                final entity = FileSystemEntity.isDirectorySync(path)
+                    ? Directory(path)
+                    : File(path);
+                if (await entity.exists()) {
+                  await entity.delete(recursive: true);
+                  await controller.refreshList();
                 }
               } catch (e) {
                 // Silent fail
@@ -237,7 +341,7 @@ class AllRecordsPage extends StatelessWidget {
             child: Text(
               l10n.delete,
               style: TextStyle(
-                color: Colors.redAccent,
+                color: ColorClass.deleteIcon,
                 fontSize: refSize * 0.03,
               ),
             ),
@@ -263,11 +367,11 @@ class AllRecordsPage extends StatelessWidget {
     double refSize,
     AppLocalizations l10n,
   ) {
-    // Extract file extension
-    final extension = currentName.contains('.')
+    final isDirectory = FileSystemEntity.isDirectorySync(path);
+    final extension = !isDirectory && currentName.contains('.')
         ? '.${currentName.split('.').last}'
         : '';
-    final nameWithoutExtension = currentName.contains('.')
+    final nameWithoutExtension = !isDirectory && currentName.contains('.')
         ? currentName.substring(0, currentName.lastIndexOf('.'))
         : currentName;
 
@@ -326,31 +430,28 @@ class AllRecordsPage extends StatelessWidget {
           TextButton(
             onPressed: () async {
               final newName = textController.text.trim();
-              if (newName.isEmpty) {
-                return;
-              }
+              if (newName.isEmpty) return;
 
               Get.back();
 
               try {
-                final file = File(path);
-                if (await file.exists()) {
-                  final directory = file.parent.path;
-                  final newPath = '$directory/$newName$extension';
+                // For files, append extension. For folders, just newName.
+                final fullName = '$newName$extension';
 
-                  // Check if file with new name already exists
-                  if (await File(newPath).exists()) {
-                    return;
-                  }
+                final parent = Directory(path).parent.path;
+                final newPath = '$parent/$fullName';
 
-                  await file.rename(newPath);
+                final entity = isDirectory ? Directory(newPath) : File(newPath);
 
-                  // Update the records list
-                  final index = controller.records.indexOf(path);
-                  if (index != -1) {
-                    controller.records[index] = newPath;
-                  }
+                if (await entity.exists()) return;
+
+                if (isDirectory) {
+                  await Directory(path).rename(newPath);
+                } else {
+                  await File(path).rename(newPath);
                 }
+
+                await controller.refreshList();
               } catch (e) {
                 // Silent fail
               }
@@ -359,6 +460,242 @@ class AllRecordsPage extends StatelessWidget {
               l10n.rename,
               style: TextStyle(
                 color: ColorClass.glowBlue,
+                fontSize: refSize * 0.03,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateFolderDialog(
+    BuildContext context,
+    RecorderController controller,
+    double refSize,
+  ) {
+    final textController = TextEditingController();
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: ColorClass.darkBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(refSize * 0.03),
+        ),
+        title: TextWidget(
+          text: "New Folder",
+          textColor: ColorClass.white,
+          fontSize: refSize * 0.04,
+          fontWeight: FontWeight.bold,
+        ),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          style: TextStyle(color: ColorClass.white, fontSize: refSize * 0.035),
+          decoration: InputDecoration(
+            hintText: "Folder Name",
+            hintStyle: TextStyle(
+              color: ColorClass.textSecondary.withValues(alpha: 0.5),
+              fontSize: refSize * 0.03,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(refSize * 0.02),
+              borderSide: const BorderSide(color: ColorClass.textSecondary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(refSize * 0.02),
+              borderSide: const BorderSide(color: ColorClass.glowBlue),
+            ),
+            filled: true,
+            fillColor: ColorClass.buttonBg,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: ColorClass.textSecondary,
+                fontSize: refSize * 0.03,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final name = textController.text.trim();
+              if (name.isNotEmpty) {
+                controller.createFolder(name);
+              }
+              Get.back();
+            },
+            child: Text(
+              "Create",
+              style: TextStyle(
+                color: ColorClass.glowBlue,
+                fontSize: refSize * 0.03,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFolderOptions(
+    BuildContext context,
+    RecorderController controller,
+    String path,
+    String name,
+    double refSize,
+    AppLocalizations l10n,
+  ) {
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(refSize * 0.05),
+        decoration: BoxDecoration(
+          color: ColorClass.darkBackground,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(refSize * 0.05),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextWidget(
+              text: name,
+              textColor: ColorClass.white,
+              fontSize: refSize * 0.04,
+              fontWeight: FontWeight.bold,
+            ),
+            SizedBox(height: refSize * 0.04),
+            ListTile(
+              leading: const Icon(
+                Icons.edit_outlined,
+                color: ColorClass.editIcon,
+              ),
+              title: TextWidget(
+                text: l10n.rename,
+                textColor: Colors.white,
+                fontSize: refSize * 0.035,
+              ),
+              onTap: () {
+                Get.back();
+                _showRenameDialog(
+                  context,
+                  controller,
+                  path,
+                  name,
+                  refSize,
+                  l10n,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline,
+                color: ColorClass.deleteIcon,
+              ),
+              title: TextWidget(
+                text: l10n.delete,
+                textColor: Colors.white,
+                fontSize: refSize * 0.035,
+              ),
+              onTap: () {
+                Get.back();
+                _confirmDelete(context, controller, path, name, refSize, l10n);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMoveDialog(
+    BuildContext context,
+    RecorderController controller,
+    String srcPath,
+    double refSize,
+  ) {
+    // Get list of folders in current directory to allow moving INTO them
+    final folders = controller.entities.whereType<Directory>().toList();
+    // Exclude the source itself if it's a directory we are trying to move
+    folders.removeWhere((dir) => dir.path == srcPath);
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: ColorClass.darkBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(refSize * 0.03),
+        ),
+        title: TextWidget(
+          text: "Move to...",
+          textColor: Colors.white,
+          fontSize: refSize * 0.045,
+          fontWeight: FontWeight.bold,
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              if (controller.canGoBack)
+                ListTile(
+                  leading: const Icon(
+                    Icons.arrow_upward,
+                    color: ColorClass.glowBlue,
+                  ),
+                  title: TextWidget(
+                    text: "Extract from folder",
+                    textColor: Colors.white,
+                    fontSize: refSize * 0.035,
+                  ),
+                  onTap: () {
+                    final parent = Directory(
+                      controller.currentPath.value,
+                    ).parent.path;
+                    controller.moveEntity(srcPath, parent);
+                    Get.back();
+                  },
+                ),
+              if (folders.isEmpty && !controller.canGoBack)
+                Padding(
+                  padding: EdgeInsets.all(refSize * 0.02),
+                  child: TextWidget(
+                    text: "No folders",
+                    textColor: ColorClass.textSecondary,
+                    fontSize: refSize * 0.03,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ...folders.map((dir) {
+                final folderName = dir.path.split(Platform.pathSeparator).last;
+                return ListTile(
+                  leading: const Icon(
+                    Icons.folder,
+                    color: ColorClass.folderIcon,
+                  ),
+                  title: TextWidget(
+                    text: folderName,
+                    textColor: Colors.white,
+                    fontSize: refSize * 0.035,
+                  ),
+                  onTap: () {
+                    controller.moveEntity(srcPath, dir.path);
+                    Get.back();
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: ColorClass.textSecondary,
                 fontSize: refSize * 0.03,
               ),
             ),

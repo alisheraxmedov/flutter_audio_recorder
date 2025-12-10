@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:recorder/core/utils/file_saver/file_saver.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/services/recorder_service.dart';
@@ -18,6 +19,11 @@ class RecorderController extends GetxController {
   RxString savedFilePath = "".obs;
   RxBool isRecording = false.obs;
   RxBool isPaused = false.obs;
+
+  // Folder Management State
+  RxList<FileSystemEntity> entities = <FileSystemEntity>[].obs;
+  RxString currentPath = "".obs;
+  Directory? _rootDir;
 
   Timer? _timer;
   int _seconds = 0;
@@ -56,7 +62,11 @@ class RecorderController extends GetxController {
       recordName.value = fileName;
       status.value = RecorderStatus.recording;
 
-      await _recorderService.start(fileName: fileName, encoder: encoder);
+      await _recorderService.start(
+        fileName: fileName,
+        encoder: encoder,
+        directoryPath: currentPath.value.isNotEmpty ? currentPath.value : null,
+      );
 
       isRecording.value = true;
       isPaused.value = false;
@@ -78,22 +88,53 @@ class RecorderController extends GetxController {
   RxDouble amplitude = 0.0.obs;
   Timer? _ampTimer;
 
-  // ... (existing code)
-
-  RxList<String> records = <String>[].obs;
+  // RxList<String> records = <String>[].obs; // REPLACED by entities
 
   @override
   void onInit() {
     super.onInit();
-    fetchRecords();
+    _initFolderSystem();
   }
 
-  Future<void> fetchRecords() async {
-    final list = await _recorderService.getAllRecordings();
-    records.assignAll(list);
+  Future<void> _initFolderSystem() async {
+    try {
+      if (GetPlatform.isWeb) return;
+      _rootDir = await _recorderService.getRecordingsDirectory();
+      currentPath.value = _rootDir!.path;
+      await refreshList();
+    } catch (e) {
+      print("Error initializing folder system: $e");
+    }
   }
 
-  // ... (existing methods)
+  Future<void> refreshList() async {
+    if (currentPath.value.isEmpty) return;
+    final list = await _recorderService.getEntities(currentPath.value);
+    entities.assignAll(list);
+  }
+
+  Future<void> createFolder(String name) async {
+    if (currentPath.value.isEmpty) return;
+    await _recorderService.createFolder(name, currentPath.value);
+    await refreshList();
+  }
+
+  void openFolder(String path) {
+    currentPath.value = path;
+    refreshList();
+  }
+
+  bool get canGoBack {
+    if (_rootDir == null || currentPath.value.isEmpty) return false;
+    return currentPath.value != _rootDir!.path;
+  }
+
+  void goBack() {
+    if (!canGoBack) return;
+    final parent = Directory(currentPath.value).parent;
+    currentPath.value = parent.path;
+    refreshList();
+  }
 
   Future<void> stopRecording() async {
     final path = await _recorderService.stop();
@@ -112,8 +153,13 @@ class RecorderController extends GetxController {
       await saveFile(path, recordName.value);
 
       // Refresh list
-      await fetchRecords();
+      await refreshList();
     }
+  }
+
+  Future<void> moveEntity(String source, String target) async {
+    await _recorderService.moveEntity(source, target);
+    await refreshList();
   }
 
   void _startTimer() {

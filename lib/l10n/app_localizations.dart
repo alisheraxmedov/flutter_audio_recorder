@@ -213,6 +213,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No records found'**
   String get noRecordsFound;
+
+  /// No description provided for @deleteRecordingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Recording?'**
+  String get deleteRecordingTitle;
+
+  /// No description provided for @deleteRecordingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\"?'**
+  String deleteRecordingMessage(String name);
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @renameRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Recording'**
+  String get renameRecording;
+
+  /// No description provided for @enterNewName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new name'**
+  String get enterNewName;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
 }
 
 class _AppLocalizationsDelegate

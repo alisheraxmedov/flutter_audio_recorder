@@ -67,4 +67,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noRecordsFound => 'No records found';
+
+  @override
+  String get deleteRecordingTitle => 'Delete Recording?';
+
+  @override
+  String deleteRecordingMessage(String name) {
+    return 'Are you sure you want to delete \"$name\"?';
+  }
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get renameRecording => 'Rename Recording';
+
+  @override
+  String get enterNewName => 'Enter new name';
+
+  @override
+  String get rename => 'Rename';
 }

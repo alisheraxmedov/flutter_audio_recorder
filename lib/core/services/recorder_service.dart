@@ -13,22 +13,33 @@ class RecorderService {
     return await _audioRecorder.hasPermission();
   }
 
+  Future<Directory> getRecordingsDirectory() async {
+    if (kIsWeb) {
+      throw UnsupportedError('Not supported on web');
+    }
+    final Directory appDir = await getApplicationDocumentsDirectory();
+    final Directory recordsDir = Directory('${appDir.path}/recordings');
+    if (!await recordsDir.exists()) {
+      await recordsDir.create(recursive: true);
+    }
+    return recordsDir;
+  }
+
   // Start Recording
   Future<void> start({
     required String fileName,
     required AudioEncoder encoder,
+    String? directoryPath,
   }) async {
     try {
       if (await hasPermission()) {
         String filePath = '';
 
         if (!kIsWeb) {
-          final Directory appDir = await getApplicationDocumentsDirectory();
-          final Directory recordsDir = Directory('${appDir.path}/recordings');
-          if (!await recordsDir.exists()) {
-            await recordsDir.create(recursive: true);
-          }
-          filePath = '${recordsDir.path}/$fileName';
+          final dir = directoryPath != null
+              ? Directory(directoryPath)
+              : await getRecordingsDirectory();
+          filePath = '${dir.path}/$fileName';
         }
 
         // Check if encoder is supported, fallback if needed
@@ -80,34 +91,84 @@ class RecorderService {
     return await _audioRecorder.isRecording();
   }
 
-  // Get All Recordings
-  Future<List<String>> getAllRecordings() async {
-    if (kIsWeb) {
-      // On Web, we can't easily list files unless we use IndexedDB or similar.
-      // For now, return empty list or manage via state in Controller.
-      return [];
-    } else {
-      try {
-        final Directory appDir = await getApplicationDocumentsDirectory();
-        final Directory recordsDir = Directory('${appDir.path}/recordings');
-        if (await recordsDir.exists()) {
-          // List files and sort by modification date (newest first)
-          final List<FileSystemEntity> entities = recordsDir.listSync();
-          final List<File> files = entities.whereType<File>().toList();
-
-          files.sort(
-            (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
-          );
-
-          return files.map((e) => e.path).toList();
-        }
-        return [];
-      } catch (e) {
-        if (kDebugMode) {
-          print("Error listing recordings: $e");
-        }
-        return [];
+  // Get Entities (Files & Folders)
+  Future<List<FileSystemEntity>> getEntities(String path) async {
+    if (kIsWeb) return [];
+    try {
+      final dir = Directory(path);
+      if (await dir.exists()) {
+        final List<FileSystemEntity> entities = dir.listSync();
+        // Sort: Folders first, then Files. Within type, sort by date (newest first)
+        entities.sort((a, b) {
+          final aIsDir = a is Directory;
+          final bIsDir = b is Directory;
+          if (aIsDir && !bIsDir) return -1;
+          if (!aIsDir && bIsDir) return 1;
+          // Both same type, sort by modified date
+          return b.statSync().modified.compareTo(a.statSync().modified);
+        });
+        return entities;
       }
+      return [];
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error listing entities: $e");
+      }
+      return [];
+    }
+  }
+
+  // Create Folder
+  Future<void> createFolder(String name, String parentPath) async {
+    if (kIsWeb) return;
+    try {
+      final newDir = Directory('$parentPath/$name');
+      if (!await newDir.exists()) {
+        await newDir.create();
+      }
+    } catch (e) {
+      print("Error creating folder: $e");
+      rethrow;
+    }
+  }
+
+  // Rename Entity
+  Future<void> renameEntity(String path, String newName) async {
+    if (kIsWeb) return;
+    try {
+      final entity = FileSystemEntity.isDirectorySync(path)
+          ? Directory(path)
+          : File(path);
+
+      if (await entity.exists()) {
+        final parent = entity.parent.path;
+        // Keep extension if file
+        String newPath = '$parent/$newName';
+
+        await entity.rename(newPath);
+      }
+    } catch (e) {
+      print("Error renaming entity: $e");
+      rethrow;
+    }
+  }
+
+  // Move Entity
+  Future<void> moveEntity(String sourcePath, String destinationPath) async {
+    if (kIsWeb) return;
+    try {
+      final entity = FileSystemEntity.isDirectorySync(sourcePath)
+          ? Directory(sourcePath)
+          : File(sourcePath);
+
+      if (await entity.exists()) {
+        final name = sourcePath.split(Platform.pathSeparator).last;
+        final newPath = '$destinationPath/$name';
+        await entity.rename(newPath);
+      }
+    } catch (e) {
+      print("Error moving entity: $e");
+      rethrow;
     }
   }
 }

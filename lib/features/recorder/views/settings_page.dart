@@ -36,7 +36,6 @@ class SettingsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Settings Items
-            // Settings Items
             SettingsItem(
               title: AppLocalizations.of(context)!.language,
               icon: Icons.language,
@@ -51,6 +50,14 @@ class SettingsPage extends StatelessWidget {
               refSize: refSize,
               onTap: () => _showFormatBottomSheet(context, controller, refSize),
             ),
+
+            // SizedBox(height: refSize * 0.03),
+            // SettingsItem(
+            //   title: "Test Page",
+            //   icon: Icons.pending,
+            //   refSize: refSize,
+            //   onTap: () => Get.to(() => const TestPage()),
+            // ),
           ],
         ),
       ),

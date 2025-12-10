@@ -67,4 +67,27 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noRecordsFound => 'Записей пока нет';
+
+  @override
+  String get deleteRecordingTitle => 'Удалить запись?';
+
+  @override
+  String deleteRecordingMessage(String name) {
+    return 'Вы уверены, что хотите удалить \"$name\"?';
+  }
+
+  @override
+  String get cancel => 'Отмена';
+
+  @override
+  String get delete => 'Удалить';
+
+  @override
+  String get renameRecording => 'Переименовать запись';
+
+  @override
+  String get enterNewName => 'Введите новое имя';
+
+  @override
+  String get rename => 'Переименовать';
 }
