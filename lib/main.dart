@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize GetStorage
+  await GetStorage.init();
 
   if (!kIsWeb &&
       (kDebugMode ||

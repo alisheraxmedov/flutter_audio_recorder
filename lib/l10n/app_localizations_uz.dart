@@ -90,4 +90,49 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get rename => 'O\'zgartirish';
+
+  @override
+  String get sortTitle => 'Saralash';
+
+  @override
+  String get sortDateNew => 'Yangi';
+
+  @override
+  String get sortDateOld => 'Eski';
+
+  @override
+  String get sortNameAsc => 'A-Z';
+
+  @override
+  String get sortNameDesc => 'Z-A';
+
+  @override
+  String get sortSizeBig => 'Katta';
+
+  @override
+  String get sortSizeSmall => 'Kichik';
+
+  @override
+  String get sortDurLong => 'Uzun';
+
+  @override
+  String get sortDurShort => 'Qisqa';
+
+  @override
+  String get newFolder => 'Yangi papka';
+
+  @override
+  String get folderName => 'Papka nomi';
+
+  @override
+  String get create => 'Yaratish';
+
+  @override
+  String get moveTo => 'Ko\'chirish...';
+
+  @override
+  String get extractFromFolder => 'Yuqori papka';
+
+  @override
+  String get noFolders => 'Papkalar yo\'q';
 }

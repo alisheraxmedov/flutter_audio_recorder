@@ -255,6 +255,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rename'**
   String get rename;
+
+  /// No description provided for @sortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortTitle;
+
+  /// No description provided for @sortDateNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest'**
+  String get sortDateNew;
+
+  /// No description provided for @sortDateOld.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest'**
+  String get sortDateOld;
+
+  /// No description provided for @sortNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'A-Z'**
+  String get sortNameAsc;
+
+  /// No description provided for @sortNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Z-A'**
+  String get sortNameDesc;
+
+  /// No description provided for @sortSizeBig.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest'**
+  String get sortSizeBig;
+
+  /// No description provided for @sortSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Smallest'**
+  String get sortSizeSmall;
+
+  /// No description provided for @sortDurLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest'**
+  String get sortDurLong;
+
+  /// No description provided for @sortDurShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest'**
+  String get sortDurShort;
+
+  /// No description provided for @newFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New Folder'**
+  String get newFolder;
+
+  /// No description provided for @folderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder Name'**
+  String get folderName;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @moveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to...'**
+  String get moveTo;
+
+  /// No description provided for @extractFromFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent folder'**
+  String get extractFromFolder;
+
+  /// No description provided for @noFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'No folders'**
+  String get noFolders;
 }
 
 class _AppLocalizationsDelegate

@@ -41,5 +41,21 @@
   "delete": "Delete",
   "renameRecording": "Rename Recording",
   "enterNewName": "Enter new name",
-  "rename": "Rename"
+  "rename": "Rename",
+  "sortTitle": "Sort",
+  "sortDateNew": "Newest",
+  "sortDateOld": "Oldest",
+  "sortNameAsc": "A-Z",
+  "sortNameDesc": "Z-A",
+  "sortSizeBig": "Largest",
+  "sortSizeSmall": "Smallest",
+  "sortDurLong": "Longest",
+  "sortDurShort": "Shortest",
+  "newFolder": "New Folder",
+  "folderName": "Folder Name",
+  "create": "Create",
+  "moveTo": "Move to...",
+  "extractFromFolder": "Parent folder",
+  "noFolders": "No folders"
 }
+

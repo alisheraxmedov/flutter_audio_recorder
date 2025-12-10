@@ -90,4 +90,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rename => 'Rename';
+
+  @override
+  String get sortTitle => 'Sort';
+
+  @override
+  String get sortDateNew => 'Newest';
+
+  @override
+  String get sortDateOld => 'Oldest';
+
+  @override
+  String get sortNameAsc => 'A-Z';
+
+  @override
+  String get sortNameDesc => 'Z-A';
+
+  @override
+  String get sortSizeBig => 'Largest';
+
+  @override
+  String get sortSizeSmall => 'Smallest';
+
+  @override
+  String get sortDurLong => 'Longest';
+
+  @override
+  String get sortDurShort => 'Shortest';
+
+  @override
+  String get newFolder => 'New Folder';
+
+  @override
+  String get folderName => 'Folder Name';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get moveTo => 'Move to...';
+
+  @override
+  String get extractFromFolder => 'Parent folder';
+
+  @override
+  String get noFolders => 'No folders';
 }

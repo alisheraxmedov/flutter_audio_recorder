@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
+import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/main_controller.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/views/all_records_page.dart';
@@ -17,6 +18,9 @@ class DesktopMainPage extends StatelessWidget {
     // Inject controllers if not present
     if (!Get.isRegistered<RecorderController>()) {
       Get.put(RecorderController());
+    }
+    if (!Get.isRegistered<AudioPlayerService>()) {
+      Get.put(AudioPlayerService());
     }
     final mainController = Get.find<MainController>();
     // final size = MediaQuery.of(context).size;

@@ -90,4 +90,49 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get rename => 'Переименовать';
+
+  @override
+  String get sortTitle => 'Сортировка';
+
+  @override
+  String get sortDateNew => 'Новые';
+
+  @override
+  String get sortDateOld => 'Старые';
+
+  @override
+  String get sortNameAsc => 'А-Я';
+
+  @override
+  String get sortNameDesc => 'Я-А';
+
+  @override
+  String get sortSizeBig => 'Большие';
+
+  @override
+  String get sortSizeSmall => 'Маленькие';
+
+  @override
+  String get sortDurLong => 'Длинные';
+
+  @override
+  String get sortDurShort => 'Короткие';
+
+  @override
+  String get newFolder => 'Новая папка';
+
+  @override
+  String get folderName => 'Имя папки';
+
+  @override
+  String get create => 'Создать';
+
+  @override
+  String get moveTo => 'Переместить...';
+
+  @override
+  String get extractFromFolder => 'Родительская папка';
+
+  @override
+  String get noFolders => 'Нет папок';
 }

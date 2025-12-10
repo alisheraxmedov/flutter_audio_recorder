@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
+import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/main_controller.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/controllers/settings_controller.dart';
@@ -20,6 +21,7 @@ class MainPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Get.put(SettingsController());
     Get.put(RecorderController());
+    Get.put(AudioPlayerService());
     final controller = Get.put(MainController());
     final size = MediaQuery.of(context).size;
     final double refSize = size.shortestSide.clamp(0.0, 500.0);

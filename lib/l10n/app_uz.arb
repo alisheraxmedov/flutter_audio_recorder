@@ -24,5 +24,21 @@
   "delete": "O'chirish",
   "renameRecording": "Yozuv nomini o'zgartirish",
   "enterNewName": "Yangi nom kiriting",
-  "rename": "O'zgartirish"
+  "rename": "O'zgartirish",
+  "sortTitle": "Saralash",
+  "sortDateNew": "Yangi",
+  "sortDateOld": "Eski",
+  "sortNameAsc": "A-Z",
+  "sortNameDesc": "Z-A",
+  "sortSizeBig": "Katta",
+  "sortSizeSmall": "Kichik",
+  "sortDurLong": "Uzun",
+  "sortDurShort": "Qisqa",
+  "newFolder": "Yangi papka",
+  "folderName": "Papka nomi",
+  "create": "Yaratish",
+  "moveTo": "Ko'chirish...",
+  "extractFromFolder": "Yuqori papka",
+  "noFolders": "Papkalar yo'q"
 }
+

@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
+import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
+import 'package:recorder/features/recorder/models/sort_option.dart';
 import 'package:recorder/l10n/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -58,11 +60,61 @@ class AllRecordsPage extends StatelessWidget {
             return const BackButton();
           }),
           actions: [
+            Obx(
+              () => PopupMenuButton<SortOption>(
+                icon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sort),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getSortLabel(controller.currentSortOption.value, l10n),
+                      style: TextStyle(
+                        fontSize: refSize * 0.028,
+                        color: ColorClass.white,
+                      ),
+                    ),
+                  ],
+                ),
+                tooltip: l10n.sortTitle,
+                color: ColorClass.darkBackground,
+                onSelected: (option) => controller.changeSortOption(option),
+                itemBuilder: (context) => SortOption.values.map((option) {
+                  final isSelected =
+                      controller.currentSortOption.value == option;
+                  return PopupMenuItem<SortOption>(
+                    value: option,
+                    child: Row(
+                      children: [
+                        if (isSelected)
+                          Icon(
+                            Icons.check,
+                            color: ColorClass.glowBlue,
+                            size: refSize * 0.04,
+                          )
+                        else
+                          SizedBox(width: refSize * 0.04),
+                        SizedBox(width: refSize * 0.02),
+                        Text(
+                          _getSortLabel(option, l10n),
+                          style: TextStyle(
+                            color: isSelected
+                                ? ColorClass.glowBlue
+                                : ColorClass.white,
+                            fontSize: refSize * 0.032,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.create_new_folder_outlined),
-              tooltip: "New Folder",
+              tooltip: l10n.newFolder,
               onPressed: () =>
-                  _showCreateFolderDialog(context, controller, refSize),
+                  _showCreateFolderDialog(context, controller, refSize, l10n),
             ),
           ],
         ),
@@ -163,6 +215,8 @@ class AllRecordsPage extends StatelessWidget {
     required double refSize,
     required AppLocalizations l10n,
   }) {
+    final audioPlayer = Get.find<AudioPlayerService>();
+
     return Container(
       margin: EdgeInsets.only(bottom: refSize * 0.04),
       alignment: Alignment.center,
@@ -190,6 +244,19 @@ class AllRecordsPage extends StatelessWidget {
             fontWeight: FontWeight.w500,
             overflow: TextOverflow.ellipsis,
           ),
+          subtitle: Builder(
+            builder: (context) {
+              final metadata = controller.getMetadata(path);
+              if (metadata == null) return const SizedBox.shrink();
+              return Text(
+                '${metadata.formattedDuration} • ${metadata.formattedSize}',
+                style: TextStyle(
+                  color: ColorClass.textSecondary,
+                  fontSize: refSize * 0.025,
+                ),
+              );
+            },
+          ),
           trailing: Icon(
             Icons.keyboard_arrow_down,
             color: ColorClass.textSecondary,
@@ -202,18 +269,78 @@ class AllRecordsPage extends StatelessWidget {
             vertical: refSize * 0.03,
           ),
           children: [
+            // Progress indicator when playing
+            Obx(() {
+              if (audioPlayer.currentPath.value == path) {
+                return Column(
+                  children: [
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        thumbShape: RoundSliderThumbShape(
+                          enabledThumbRadius: refSize * 0.015,
+                        ),
+                        trackHeight: refSize * 0.008,
+                        activeTrackColor: ColorClass.glowBlue,
+                        inactiveTrackColor: ColorClass.textSecondary.withValues(
+                          alpha: 0.3,
+                        ),
+                        thumbColor: ColorClass.glowBlue,
+                      ),
+                      child: Slider(
+                        value: audioPlayer.progress.clamp(0.0, 1.0),
+                        onChanged: (value) {
+                          final newPosition = Duration(
+                            milliseconds:
+                                (value *
+                                        audioPlayer
+                                            .duration
+                                            .value
+                                            .inMilliseconds)
+                                    .toInt(),
+                          );
+                          audioPlayer.seek(newPosition);
+                        },
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          audioPlayer.formattedPosition,
+                          style: TextStyle(
+                            color: ColorClass.textSecondary,
+                            fontSize: refSize * 0.025,
+                          ),
+                        ),
+                        Text(
+                          audioPlayer.formattedDuration,
+                          style: TextStyle(
+                            color: ColorClass.textSecondary,
+                            fontSize: refSize * 0.025,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: refSize * 0.02),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            }),
             // Action buttons row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 // Play/Pause button
-                _buildActionButton(
-                  icon: Icons.pause,
-                  color: ColorClass.glowBlue,
-                  refSize: refSize,
-                  onTap: () {
-                    // TODO: Implement play/pause
-                  },
+                Obx(
+                  () => _buildActionButton(
+                    icon: audioPlayer.isCurrentlyPlaying(path)
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
+                    color: ColorClass.glowBlue,
+                    refSize: refSize,
+                    onTap: () => audioPlayer.togglePlayPause(path),
+                  ),
                 ),
                 // Edit/Rename button
                 _buildActionButton(
@@ -235,7 +362,7 @@ class AllRecordsPage extends StatelessWidget {
                   color: ColorClass.moveIcon,
                   refSize: refSize,
                   onTap: () =>
-                      _showMoveDialog(context, controller, path, refSize),
+                      _showMoveDialog(context, controller, path, refSize, l10n),
                 ),
                 // Delete button
                 _buildActionButton(
@@ -332,6 +459,7 @@ class AllRecordsPage extends StatelessWidget {
                     : File(path);
                 if (await entity.exists()) {
                   await entity.delete(recursive: true);
+                  await controller.deleteEntityMetadata(path);
                   await controller.refreshList();
                 }
               } catch (e) {
@@ -449,6 +577,8 @@ class AllRecordsPage extends StatelessWidget {
                   await Directory(path).rename(newPath);
                 } else {
                   await File(path).rename(newPath);
+                  // Update metadata path for files
+                  await controller.renameEntityMetadata(path, newPath);
                 }
 
                 await controller.refreshList();
@@ -473,6 +603,7 @@ class AllRecordsPage extends StatelessWidget {
     BuildContext context,
     RecorderController controller,
     double refSize,
+    AppLocalizations l10n,
   ) {
     final textController = TextEditingController();
     Get.dialog(
@@ -482,7 +613,7 @@ class AllRecordsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(refSize * 0.03),
         ),
         title: TextWidget(
-          text: "New Folder",
+          text: l10n.newFolder,
           textColor: ColorClass.white,
           fontSize: refSize * 0.04,
           fontWeight: FontWeight.bold,
@@ -492,7 +623,7 @@ class AllRecordsPage extends StatelessWidget {
           autofocus: true,
           style: TextStyle(color: ColorClass.white, fontSize: refSize * 0.035),
           decoration: InputDecoration(
-            hintText: "Folder Name",
+            hintText: l10n.folderName,
             hintStyle: TextStyle(
               color: ColorClass.textSecondary.withValues(alpha: 0.5),
               fontSize: refSize * 0.03,
@@ -513,7 +644,7 @@ class AllRecordsPage extends StatelessWidget {
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              "Cancel",
+              l10n.cancel,
               style: TextStyle(
                 color: ColorClass.textSecondary,
                 fontSize: refSize * 0.03,
@@ -529,7 +660,7 @@ class AllRecordsPage extends StatelessWidget {
               Get.back();
             },
             child: Text(
-              "Create",
+              l10n.create,
               style: TextStyle(
                 color: ColorClass.glowBlue,
                 fontSize: refSize * 0.03,
@@ -616,6 +747,7 @@ class AllRecordsPage extends StatelessWidget {
     RecorderController controller,
     String srcPath,
     double refSize,
+    AppLocalizations l10n,
   ) {
     // Get list of folders in current directory to allow moving INTO them
     final folders = controller.entities.whereType<Directory>().toList();
@@ -629,7 +761,7 @@ class AllRecordsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(refSize * 0.03),
         ),
         title: TextWidget(
-          text: "Move to...",
+          text: l10n.moveTo,
           textColor: Colors.white,
           fontSize: refSize * 0.045,
           fontWeight: FontWeight.bold,
@@ -646,7 +778,7 @@ class AllRecordsPage extends StatelessWidget {
                     color: ColorClass.glowBlue,
                   ),
                   title: TextWidget(
-                    text: "Extract from folder",
+                    text: l10n.extractFromFolder,
                     textColor: Colors.white,
                     fontSize: refSize * 0.035,
                   ),
@@ -662,7 +794,7 @@ class AllRecordsPage extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.all(refSize * 0.02),
                   child: TextWidget(
-                    text: "No folders",
+                    text: l10n.noFolders,
                     textColor: ColorClass.textSecondary,
                     fontSize: refSize * 0.03,
                     textAlign: TextAlign.center,
@@ -693,7 +825,7 @@ class AllRecordsPage extends StatelessWidget {
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              "Cancel",
+              l10n.cancel,
               style: TextStyle(
                 color: ColorClass.textSecondary,
                 fontSize: refSize * 0.03,
@@ -703,5 +835,26 @@ class AllRecordsPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _getSortLabel(SortOption option, AppLocalizations l10n) {
+    switch (option) {
+      case SortOption.dateNew:
+        return l10n.sortDateNew;
+      case SortOption.dateOld:
+        return l10n.sortDateOld;
+      case SortOption.nameAsc:
+        return l10n.sortNameAsc;
+      case SortOption.nameDesc:
+        return l10n.sortNameDesc;
+      case SortOption.sizeBig:
+        return l10n.sortSizeBig;
+      case SortOption.sizeSmall:
+        return l10n.sortSizeSmall;
+      case SortOption.durLong:
+        return l10n.sortDurLong;
+      case SortOption.durShort:
+        return l10n.sortDurShort;
+    }
   }
 }
