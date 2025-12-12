@@ -6,7 +6,7 @@ import 'package:recorder/features/recorder/controllers/recorder_controller.dart'
 import 'package:recorder/features/recorder/widgets/all_records/create_folder_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/delete_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/folder_options_sheet.dart';
-import 'package:recorder/features/recorder/widgets/all_records/folder_tile.dart';
+import 'package:recorder/features/recorder/widgets/magic_widgets/folder_widget.dart';
 import 'package:recorder/features/recorder/widgets/all_records/move_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/record_expansion_tile.dart';
 import 'package:recorder/features/recorder/widgets/all_records/rename_dialog.dart';
@@ -41,12 +41,8 @@ class AllRecordsPage extends StatelessWidget {
           title: Obx(() {
             final path = controller.currentPath.value;
             final folderName = path.split(Platform.pathSeparator).last;
-            // Show "All Records" if root, otherwise folder name
-            final title = !controller.canGoBack
-                ? l10n.allRecordsTitle
-                : folderName;
             return TextWidget(
-              text: title,
+              text: !controller.canGoBack ? l10n.allRecordsTitle : folderName,
               textColor: ColorClass.white,
               fontSize: refSize * 0.045,
             );
@@ -138,66 +134,108 @@ class AllRecordsPage extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(refSize * 0.05),
-            itemCount: controller.entities.length,
-            itemBuilder: (context, index) {
-              final entity = controller.entities[index];
-              final name = entity.path.split(Platform.pathSeparator).last;
+          return CustomScrollView(
+            slivers: [
+              // Folders Grid
+              if (controller.entities.whereType<Directory>().isNotEmpty)
+                SliverPadding(
+                  padding: EdgeInsets.only(
+                    top: refSize * 0.09,
+                    bottom: refSize * 0.05,
+                    left: refSize * 0.05,
+                    right: refSize * 0.05,
+                  ),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: refSize * 0.5,
+                      mainAxisSpacing: refSize * 0.06,
+                      crossAxisSpacing: refSize * 0.03,
+                      childAspectRatio: 1.3,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final folders = controller.entities
+                            .whereType<Directory>()
+                            .toList();
+                        final entity = folders[index];
+                        final name = entity.path
+                            .split(Platform.pathSeparator)
+                            .last;
+                        return FolderButton(
+                          label: name,
+                          onTap: () {
+                            controller.openFolder(entity.path);
+                          },
+                          onLongPress: () {
+                            FolderOptionsSheet.show(
+                              context,
+                              controller: controller,
+                              path: entity.path,
+                              name: name,
+                              refSize: refSize,
+                              l10n: l10n,
+                            );
+                          },
+                        );
+                      },
+                      childCount: controller.entities
+                          .whereType<Directory>()
+                          .length,
+                    ),
+                  ),
+                ),
 
-              if (entity is Directory) {
-                return FolderTile(
-                  controller: controller,
-                  path: entity.path,
-                  name: name,
-                  refSize: refSize,
-                  l10n: l10n,
-                  onLongPress: () {
-                    FolderOptionsSheet.show(
-                      context,
+              if (controller.entities.whereType<Directory>().isNotEmpty)
+                SliverToBoxAdapter(child: SizedBox(height: refSize * 0.02)),
+
+              // Files List
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: refSize * 0.05),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final files = controller.entities
+                        .whereType<File>()
+                        .toList();
+                    final entity = files[index];
+                    final name = entity.path.split(Platform.pathSeparator).last;
+                    return RecordExpansionTile(
+                      context: context,
                       controller: controller,
                       path: entity.path,
                       name: name,
                       refSize: refSize,
                       l10n: l10n,
+                      onRename: () => RenameDialog.show(
+                        context,
+                        controller: controller,
+                        path: entity.path,
+                        currentName: name,
+                        refSize: refSize,
+                        l10n: l10n,
+                      ),
+                      onMove: () => MoveDialog.show(
+                        context,
+                        controller: controller,
+                        srcPath: entity.path,
+                        refSize: refSize,
+                        l10n: l10n,
+                      ),
+                      onDelete: () => DeleteDialog.show(
+                        context,
+                        controller: controller,
+                        path: entity.path,
+                        name: name,
+                        refSize: refSize,
+                        l10n: l10n,
+                      ),
+                      onShare: _shareFile,
                     );
-                  },
-                );
-              } else {
-                return RecordExpansionTile(
-                  context: context,
-                  controller: controller,
-                  path: entity.path,
-                  name: name,
-                  refSize: refSize,
-                  l10n: l10n,
-                  onRename: () => RenameDialog.show(
-                    context,
-                    controller: controller,
-                    path: entity.path,
-                    currentName: name,
-                    refSize: refSize,
-                    l10n: l10n,
-                  ),
-                  onMove: () => MoveDialog.show(
-                    context,
-                    controller: controller,
-                    srcPath: entity.path,
-                    refSize: refSize,
-                    l10n: l10n,
-                  ),
-                  onDelete: () => DeleteDialog.show(
-                    context,
-                    controller: controller,
-                    path: entity.path,
-                    name: name,
-                    refSize: refSize,
-                    l10n: l10n,
-                  ),
-                  onShare: _shareFile,
-                );
-              }
-            },
+                  }, childCount: controller.entities.whereType<File>().length),
+                ),
+              ),
+              // Bottom padding
+              SliverToBoxAdapter(child: SizedBox(height: refSize * 0.05)),
+            ],
           );
         }),
       ),

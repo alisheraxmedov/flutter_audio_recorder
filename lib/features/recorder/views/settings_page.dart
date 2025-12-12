@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:recorder/core/constants/app_colors.dart';
+import 'package:recorder/features/custom_widgets/test_page.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 import 'package:recorder/l10n/app_localizations.dart';
 import 'package:recorder/features/recorder/controllers/settings_controller.dart';
@@ -51,13 +52,13 @@ class SettingsPage extends StatelessWidget {
               onTap: () => _showFormatBottomSheet(context, controller, refSize),
             ),
 
-            // SizedBox(height: refSize * 0.03),
-            // SettingsItem(
-            //   title: "Test Page",
-            //   icon: Icons.pending,
-            //   refSize: refSize,
-            //   onTap: () => Get.to(() => const TestPage()),
-            // ),
+            SizedBox(height: refSize * 0.03),
+            SettingsItem(
+              title: "Test Page",
+              icon: Icons.pending,
+              refSize: refSize,
+              onTap: () => Get.to(() => const TestPage()),
+            ),
           ],
         ),
       ),
