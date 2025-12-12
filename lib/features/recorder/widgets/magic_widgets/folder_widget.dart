@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'dart:ui';
+import 'package:recorder/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class FolderButton extends StatefulWidget {
@@ -84,81 +86,98 @@ class _FolderButtonState extends State<FolderButton>
             final hoverValue = _hoverAnimation.value;
             final floatY = _floatAnimation.value;
 
-            return Container(
-              width: folderW * 1.5, // Approx container width padding
+            return SizedBox(
+              width: folderW * 1.5,
               height:
-                  folderH * 1.5 +
-                  (refSize * 0.05), // Reduced height multiplier from 1.7 to 1.5
-              padding: EdgeInsets.all(refSize * 0.025),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF6dd5ed), Color(0xFF2193b0)],
-                ),
-                borderRadius: BorderRadius.circular(refSize * 0.0375),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: refSize * 0.075,
-                    offset: Offset(0, refSize * 0.0375),
-                  ),
-                ],
-              ),
+                  folderH * 1.75 +
+                  (refSize * 0.05), // Increased height to prevent overlap
               child: Stack(
                 clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
                 children: [
-                  // Floating Folder Area
-                  Positioned(
-                    top: -refSize * 0.04, // Adjusted top offset dynamically
-                    child: Transform.translate(
-                      offset: Offset(0, floatY),
-                      child: Transform.scale(
-                        scale: 1.0 + (0.05 * hoverValue), // Scale 1.05 on hover
-                        child: SizedBox(
-                          width: folderW,
-                          height: folderH,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.bottomCenter,
-                            children: [
-                              // Back Side (Base)
-                              _buildBackSide(folderW, folderH, refSize),
-
-                              // Papers (Pseudo elements in CSS)
-                              // Paper 1 (::before)
-                              _buildPaper(
-                                folderW,
-                                folderH,
-                                refSize,
-                                rotateXDeg: -5 * hoverValue,
-                                skewXDeg: 5 * hoverValue,
-                              ),
-                              // Paper 2 (::after)
-                              _buildPaper(
-                                folderW,
-                                folderH,
-                                refSize,
-                                rotateXDeg: -15 * hoverValue,
-                                skewXDeg: 12 * hoverValue,
-                              ),
-
-                              // Front Side (Tip + Cover)
-                              _buildFrontSide(
-                                folderW,
-                                folderH,
-                                hoverValue,
-                                refSize,
-                              ),
-                            ],
+                  // 1. Glass Background (Blurred & Clipped)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(refSize * 0.0375),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: refSize * 0.075,
+                            offset: Offset(0, refSize * 0.0375),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(refSize * 0.0375),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            color: ColorClass.buttonBg.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  // Button Label
-                  _buildLabel(hoverValue, refSize),
+
+                  // 2. Content (Floating Folder + Label) - NOT Clipped
+                  Padding(
+                    padding: EdgeInsets.all(refSize * 0.025),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        // Button Label (Rendered first => Behind)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: _buildLabel(hoverValue, refSize),
+                        ),
+
+                        // Floating Folder Area (Rendered second => In Front)
+                        Positioned(
+                          top: -refSize * 0.04,
+                          child: Transform.translate(
+                            offset: Offset(0, floatY),
+                            child: Transform.scale(
+                              scale: 1.0 + (0.05 * hoverValue),
+                              child: SizedBox(
+                                width: folderW,
+                                height: folderH,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.bottomCenter,
+                                  children: [
+                                    _buildBackSide(folderW, folderH, refSize),
+                                    _buildPaper(
+                                      folderW,
+                                      folderH,
+                                      refSize,
+                                      rotateXDeg: -5 * hoverValue,
+                                      skewXDeg: 5 * hoverValue,
+                                    ),
+                                    _buildPaper(
+                                      folderW,
+                                      folderH,
+                                      refSize,
+                                      rotateXDeg: -15 * hoverValue,
+                                      skewXDeg: 12 * hoverValue,
+                                    ),
+                                    _buildFrontSide(
+                                      folderW,
+                                      folderH,
+                                      hoverValue,
+                                      refSize,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
