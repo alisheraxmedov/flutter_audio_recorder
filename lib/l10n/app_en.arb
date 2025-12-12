@@ -47,10 +47,7 @@
   "sortDateOld": "Oldest",
   "sortNameAsc": "A-Z",
   "sortNameDesc": "Z-A",
-  "sortSizeBig": "Largest",
-  "sortSizeSmall": "Smallest",
-  "sortDurLong": "Longest",
-  "sortDurShort": "Shortest",
+
   "newFolder": "New Folder",
   "folderName": "Folder Name",
   "create": "Create",

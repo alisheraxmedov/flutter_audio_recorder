@@ -30,10 +30,7 @@
   "sortDateOld": "Старые",
   "sortNameAsc": "А-Я",
   "sortNameDesc": "Я-А",
-  "sortSizeBig": "Большие",
-  "sortSizeSmall": "Маленькие",
-  "sortDurLong": "Длинные",
-  "sortDurShort": "Короткие",
+
   "newFolder": "Новая папка",
   "folderName": "Имя папки",
   "create": "Создать",
