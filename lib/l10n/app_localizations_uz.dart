@@ -107,18 +107,6 @@ class AppLocalizationsUz extends AppLocalizations {
   String get sortNameDesc => 'Z-A';
 
   @override
-  String get sortSizeBig => 'Katta';
-
-  @override
-  String get sortSizeSmall => 'Kichik';
-
-  @override
-  String get sortDurLong => 'Uzun';
-
-  @override
-  String get sortDurShort => 'Qisqa';
-
-  @override
   String get newFolder => 'Yangi papka';
 
   @override

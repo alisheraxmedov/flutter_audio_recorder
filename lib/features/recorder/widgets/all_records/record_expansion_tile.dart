@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
@@ -126,9 +127,10 @@ class _RecordExpansionTileState extends State<RecordExpansionTile> {
                   ),
 
                   // 3. Actions (Desktop Hover or Mobile Menu)
-                  if (Platform.isLinux ||
-                      Platform.isMacOS ||
-                      Platform.isWindows)
+                  if (!kIsWeb &&
+                      (Platform.isLinux ||
+                          Platform.isMacOS ||
+                          Platform.isWindows))
                     _buildDesktopActions(isPlaying)
                   else
                     _buildMobileMenu(widget.refSize),

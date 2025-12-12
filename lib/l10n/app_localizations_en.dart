@@ -107,18 +107,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortNameDesc => 'Z-A';
 
   @override
-  String get sortSizeBig => 'Largest';
-
-  @override
-  String get sortSizeSmall => 'Smallest';
-
-  @override
-  String get sortDurLong => 'Longest';
-
-  @override
-  String get sortDurShort => 'Shortest';
-
-  @override
   String get newFolder => 'New Folder';
 
   @override

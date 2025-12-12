@@ -13,7 +13,7 @@ import 'package:recorder/features/recorder/widgets/all_records/rename_dialog.dar
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 import 'package:recorder/features/recorder/models/sort_option.dart';
 import 'package:recorder/l10n/app_localizations.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:recorder/core/services/share_service.dart';
 
 class AllRecordsPage extends StatelessWidget {
   const AllRecordsPage({super.key});
@@ -40,7 +40,7 @@ class AllRecordsPage extends StatelessWidget {
         appBar: AppBar(
           title: Obx(() {
             final path = controller.currentPath.value;
-            final folderName = path.split(Platform.pathSeparator).last;
+            final folderName = path.split(RegExp(r'[/\\]')).last;
             return TextWidget(
               text: !controller.canGoBack ? l10n.allRecordsTitle : folderName,
               textColor: ColorClass.white,
@@ -160,9 +160,7 @@ class AllRecordsPage extends StatelessWidget {
                             .whereType<Directory>()
                             .toList();
                         final entity = folders[index];
-                        final name = entity.path
-                            .split(Platform.pathSeparator)
-                            .last;
+                        final name = entity.path.split(RegExp(r'[/\\]')).last;
                         return FolderButton(
                           label: name,
                           onTap: () {
@@ -199,7 +197,7 @@ class AllRecordsPage extends StatelessWidget {
                         .whereType<File>()
                         .toList();
                     final entity = files[index];
-                    final name = entity.path.split(Platform.pathSeparator).last;
+                    final name = entity.path.split(RegExp(r'[/\\]')).last;
                     return RecordExpansionTile(
                       context: context,
                       controller: controller,
@@ -244,12 +242,8 @@ class AllRecordsPage extends StatelessWidget {
     );
   }
 
-  void _shareFile(String path) async {
-    try {
-      await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
-    } catch (e) {
-      // Silent fail
-    }
+  void _shareFile(String path) {
+    Get.find<ShareService>().shareFile(path);
   }
 
   String _getSortLabel(SortOption option, AppLocalizations l10n) {

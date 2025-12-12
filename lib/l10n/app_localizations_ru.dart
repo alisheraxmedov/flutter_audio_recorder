@@ -107,18 +107,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sortNameDesc => 'Я-А';
 
   @override
-  String get sortSizeBig => 'Большие';
-
-  @override
-  String get sortSizeSmall => 'Маленькие';
-
-  @override
-  String get sortDurLong => 'Длинные';
-
-  @override
-  String get sortDurShort => 'Короткие';
-
-  @override
   String get newFolder => 'Новая папка';
 
   @override

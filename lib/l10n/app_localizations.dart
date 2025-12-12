@@ -286,30 +286,6 @@ abstract class AppLocalizations {
   /// **'Z-A'**
   String get sortNameDesc;
 
-  /// No description provided for @sortSizeBig.
-  ///
-  /// In en, this message translates to:
-  /// **'Largest'**
-  String get sortSizeBig;
-
-  /// No description provided for @sortSizeSmall.
-  ///
-  /// In en, this message translates to:
-  /// **'Smallest'**
-  String get sortSizeSmall;
-
-  /// No description provided for @sortDurLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Longest'**
-  String get sortDurLong;
-
-  /// No description provided for @sortDurShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Shortest'**
-  String get sortDurShort;
-
   /// No description provided for @newFolder.
   ///
   /// In en, this message translates to:
