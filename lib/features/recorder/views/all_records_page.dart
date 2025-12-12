@@ -111,6 +111,7 @@ class AllRecordsPage extends StatelessWidget {
                 }).toList(),
               ),
             ),
+            SizedBox(width: refSize * 0.05),
             IconButton(
               icon: const Icon(Icons.create_new_folder_outlined),
               tooltip: l10n.newFolder,
@@ -121,6 +122,7 @@ class AllRecordsPage extends StatelessWidget {
                 l10n: l10n,
               ),
             ),
+            SizedBox(width: refSize * 0.05),
           ],
         ),
         body: Obx(() {
@@ -260,14 +262,6 @@ class AllRecordsPage extends StatelessWidget {
         return l10n.sortNameAsc;
       case SortOption.nameDesc:
         return l10n.sortNameDesc;
-      case SortOption.sizeBig:
-        return l10n.sortSizeBig;
-      case SortOption.sizeSmall:
-        return l10n.sortSizeSmall;
-      case SortOption.durLong:
-        return l10n.sortDurLong;
-      case SortOption.durShort:
-        return l10n.sortDurShort;
     }
   }
 }

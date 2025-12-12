@@ -127,9 +127,6 @@ class RecorderController extends GetxController {
     final folders = entities.whereType<Directory>().toList();
 
     files.sort((a, b) {
-      final metaA = metadataCache[a.path];
-      final metaB = metadataCache[b.path];
-
       switch (currentSortOption.value) {
         case SortOption.dateNew:
           return b.statSync().modified.compareTo(a.statSync().modified);
@@ -139,18 +136,6 @@ class RecorderController extends GetxController {
           return a.path.split('/').last.compareTo(b.path.split('/').last);
         case SortOption.nameDesc:
           return b.path.split('/').last.compareTo(a.path.split('/').last);
-        case SortOption.sizeBig:
-          return b.lengthSync().compareTo(a.lengthSync());
-        case SortOption.sizeSmall:
-          return a.lengthSync().compareTo(b.lengthSync());
-        case SortOption.durLong:
-          final durA = metaA?.durationMs ?? 0;
-          final durB = metaB?.durationMs ?? 0;
-          return durB.compareTo(durA);
-        case SortOption.durShort:
-          final durA = metaA?.durationMs ?? 0;
-          final durB = metaB?.durationMs ?? 0;
-          return durA.compareTo(durB);
       }
     });
 
