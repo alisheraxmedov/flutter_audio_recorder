@@ -18,4 +18,7 @@ class ColorClass {
   static const Color editIcon = Colors.orangeAccent;
   static const Color moveIcon = Colors.purpleAccent;
   static const Color deleteIcon = Colors.redAccent;
+
+  static const Color transparent = Colors.transparent;
+  static const Color borderLight = Colors.white10;
 }
