@@ -28,7 +28,9 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
     super.initState();
     controller = Get.put(AudioEditorController());
     if (widget.filePath != null) {
-      controller.loadFile(widget.filePath!);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.loadFile(widget.filePath!);
+      });
     }
 
     // Sync text fields when selection changes programmatically (e.g. dragging)
