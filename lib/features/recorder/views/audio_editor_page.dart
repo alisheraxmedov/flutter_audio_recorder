@@ -23,6 +23,9 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
   final TextEditingController _endController = TextEditingController();
   final TextEditingController _exportNameController = TextEditingController();
 
+  Worker? _activeTrackWorker;
+  Worker? _exportNameWorker;
+
   @override
   void initState() {
     super.initState();
@@ -33,30 +36,16 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
       });
     }
 
-    // Sync text fields when selection changes programmatically (e.g. dragging)
-    // We listen to the ACTIVE track's logic.
-    // Use worker that recreates when active track ID changes?
-    // Or just listen to controller.activeTrack.startSelection - but activeTrack reference changes.
-    // Better: listen to controller.tracks and when selection of *any* track changes, update IF it is active?
-    // Easiest: interval or rebuild.
-    // Correct GetX way:
-    ever(controller.activeTrackIndex, (_) => _updateTextFields());
+    // Sync text fields when active track changes
+    _activeTrackWorker = ever(controller.activeTrackIndex, (_) {
+      _updateTextFields();
+      _bindSelectionListeners();
+    });
 
-    // We also need to listen to values of CURRENT active track.
-    // Since activeTrack object stays same in list, but the pointer activeTrackIndex changes.
-    // We can just listen to the stream of the active track properties dynamically?
-    // Actually, let's just create a generic listener that updates UI if the changed track is the active one.
-
-    // Simpler: Just rely on building. The TextFields are the issue.
-    // Let's attach listeners to the observables of all tracks? No.
-    // Let's just update text when text field is built? No, we need two-way.
-
-    // Let's use `interval` or `ever` on the specific properties of the active track, re-binding when index changes.
     _bindSelectionListeners();
-    ever(controller.activeTrackIndex, (_) => _bindSelectionListeners());
 
     // Sync export name
-    ever(controller.exportFileName, (_) {
+    _exportNameWorker = ever(controller.exportFileName, (_) {
       if (_exportNameController.text != controller.exportFileName.value) {
         _exportNameController.text = controller.exportFileName.value;
       }
@@ -74,7 +63,9 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
     _updateTextFields(); // Initial update on switch
 
     _startWorker = ever(track.startSelection, (_) {
-      if (!_startController.selection.isValid) {
+      // Check mounted to avoid error if called after dispose but before worker disposal?
+      // Actually worker disposal should prevent this.
+      if (mounted && !_startController.selection.isValid) {
         _startController.text = controller.formatTime(
           controller.activeTrack.startMs,
         );
@@ -82,7 +73,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
     });
 
     _endWorker = ever(track.endSelection, (_) {
-      if (!_endController.selection.isValid) {
+      if (mounted && !_endController.selection.isValid) {
         _endController.text = controller.formatTime(
           controller.activeTrack.endMs,
         );
@@ -91,6 +82,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
   }
 
   void _updateTextFields() {
+    if (!mounted) return;
     _startController.text = controller.formatTime(
       controller.activeTrack.startMs,
     );
@@ -99,6 +91,11 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
 
   @override
   void dispose() {
+    _activeTrackWorker?.dispose();
+    _exportNameWorker?.dispose();
+    _startWorker?.dispose();
+    _endWorker?.dispose();
+
     Get.delete<AudioEditorController>();
     _startController.dispose();
     _endController.dispose();
@@ -120,186 +117,178 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: ColorClass.white),
-          onPressed: () => Get.back(),
-        ),
-        title: Obx(
-          () => TextWidget(
-            // Granular Obx for title (Active Track)
-            text: controller.activeTrack.fileName.value,
-            textColor: ColorClass.white,
-            fontSize: refSize * 0.035,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      // Removed top-level Obx wrapper
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    // LEFT PANEL (Files & Export)
-                    _buildSidePanel(
-                      width: size.width * 0.25,
-                      refSize: refSize,
-                      title: "Files",
-                      child: _buildFilesContent(
-                        refSize,
-                      ), // Contains internal Obx
-                    ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      // LEFT PANEL (Files & Export)
+                      _buildSidePanel(
+                        width: size.width * 0.25,
+                        refSize: refSize,
+                        title: "Files",
+                        child: _buildFilesContent(
+                          refSize,
+                        ), // Contains internal Obx
+                      ),
 
-                    // CENTER (Multi-Track)
-                    Expanded(
-                      child: DropTarget(
-                        onDragDone: (detail) {
-                          if (detail.files.isNotEmpty) {
-                            // Load into currently active track or find first empty?
-                            // User logic: "Drag to specific slot".
-                            // Since this global drop zone covers everything, we default to active track.
-                            // BUT: We want specific slot dropping.
-                            // Ideally, we should keep the global one for "General load" or remove it if we want precise dropping.
-                            // Let's keep it but maybe default to active.
-                            controller.loadFile(detail.files.first.path);
-                          }
-                        },
-                        child: Padding(
-                          padding: EdgeInsets.all(refSize * 0.02),
-                          child: Column(
-                            children: [
-                              SizedBox(height: refSize * 0.02),
+                      // CENTER (Multi-Track)
+                      Expanded(
+                        child: DropTarget(
+                          onDragDone: (detail) {
+                            if (detail.files.isNotEmpty) {
+                              // Load into currently active track or find first empty?
+                              // User logic: "Drag to specific slot".
+                              // Since this global drop zone covers everything, we default to active track.
+                              // BUT: We want specific slot dropping.
+                              // Ideally, we should keep the global one for "General load" or remove it if we want precise dropping.
+                              // Let's keep it but maybe default to active.
+                              controller.loadFile(detail.files.first.path);
+                            }
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.all(refSize * 0.02),
+                            child: Column(
+                              children: [
+                                SizedBox(height: refSize * 0.02),
 
-                              // Tracks Stack
-                              Expanded(
-                                child: Obx(
-                                  () => Column(
-                                    children: controller.tracks.map((track) {
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                            bottom: refSize * 0.02,
-                                          ),
-                                          child: DropTarget(
-                                            onDragDone: (detail) {
-                                              if (detail.files.isNotEmpty) {
-                                                controller.setActiveTrack(
-                                                  track.id,
-                                                ); // Auto-select logic?
-                                                controller.loadFile(
-                                                  detail.files.first.path,
-                                                  trackIndex: track.id,
-                                                );
-                                              }
-                                            },
-                                            child: _buildTrackSlot(
-                                              refSize: refSize,
-                                              trackData:
-                                                  track, // Pass full object
-                                              isActive:
-                                                  controller
-                                                      .activeTrackIndex
-                                                      .value ==
-                                                  track.id,
+                                // Tracks Stack
+                                Expanded(
+                                  child: Obx(
+                                    () => Column(
+                                      children: controller.tracks.map((track) {
+                                        return Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              bottom: refSize * 0.02,
+                                            ),
+                                            child: DropTarget(
+                                              onDragDone: (detail) {
+                                                if (detail.files.isNotEmpty) {
+                                                  controller.setActiveTrack(
+                                                    track.id,
+                                                  ); // Auto-select logic?
+                                                  controller.loadFile(
+                                                    detail.files.first.path,
+                                                    trackIndex: track.id,
+                                                  );
+                                                }
+                                              },
+                                              child: _buildTrackSlot(
+                                                refSize: refSize,
+                                                trackData:
+                                                    track, // Pass full object
+                                                isActive:
+                                                    controller
+                                                        .activeTrackIndex
+                                                        .value ==
+                                                    track.id,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      );
-                                    }).toList(),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    // RIGHT PANEL (Info & Selection)
-                    _buildSidePanel(
-                      width: size.width * 0.25,
-                      refSize: refSize,
-                      title: "Info",
-                      child: _buildInfoContent(
-                        refSize,
-                      ), // Contains internal Obx
-                    ),
-                  ],
-                ),
-              ),
-
-              // BOTTOM PANEL
-              Container(
-                height: refSize * 0.2,
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
-                decoration: BoxDecoration(
-                  color: ColorClass.buttonBg,
-                  border: Border(
-                    top: BorderSide(
-                      color: ColorClass.white.withValues(alpha: 0.1),
-                    ),
+                      // RIGHT PANEL (Info & Selection)
+                      _buildSidePanel(
+                        width: size.width * 0.25,
+                        refSize: refSize,
+                        title: "Info",
+                        child: _buildInfoContent(
+                          refSize,
+                        ), // Contains internal Obx
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _controlButton(
-                      icon: Icons.content_cut,
-                      onTap: () => controller.trimAudio(),
-                      refSize: refSize,
-                      color: Colors.redAccent,
-                      bgColor: Colors.transparent,
-                    ),
-                    SizedBox(width: refSize * 0.06),
 
-                    SizedBox(
-                      width: refSize * 0.15,
-                      height: refSize * 0.15,
-                      child: FloatingActionButton(
-                        onPressed: () => controller.playPreview(),
-                        backgroundColor: ColorClass.white,
-                        child: Icon(
-                          Icons.play_arrow,
-                          color: Colors.black,
-                          size: refSize * 0.08,
+                // BOTTOM PANEL
+                Container(
+                  height: refSize * 0.2,
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
+                  decoration: BoxDecoration(
+                    color: ColorClass.buttonBg,
+                    border: Border(
+                      top: BorderSide(
+                        color: ColorClass.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _controlButton(
+                        icon: Icons.content_cut,
+                        onTap: () => controller.trimAudio(),
+                        refSize: refSize,
+                        color: Colors.redAccent,
+                        bgColor: Colors.transparent,
+                      ),
+                      SizedBox(width: refSize * 0.06),
+
+                      SizedBox(
+                        width: refSize * 0.15,
+                        height: refSize * 0.15,
+                        child: FloatingActionButton(
+                          onPressed: () => controller.playPreview(),
+                          backgroundColor: ColorClass.white,
+                          child: Icon(
+                            Icons.play_arrow,
+                            color: Colors.black,
+                            size: refSize * 0.08,
+                          ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(width: refSize * 0.06),
-                    _controlButton(
-                      icon: Icons.cut_outlined,
-                      onTap: () => controller.cutAudio(),
-                      refSize: refSize,
-                      color: ColorClass.white,
-                      bgColor: Colors.transparent,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Loading Overlay
-          Obx(
-            () => controller.isLoading.value
-                ? Container(
-                    color: Colors.black54,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: ColorClass.glowBlue,
+                      SizedBox(width: refSize * 0.06),
+                      _controlButton(
+                        icon: Icons.cut_outlined,
+                        onTap: () => controller.cutAudio(),
+                        refSize: refSize,
+                        color: ColorClass.white,
+                        bgColor: Colors.transparent,
                       ),
-                    ),
-                  )
-                : SizedBox.shrink(),
-          ),
-        ],
+                      SizedBox(width: refSize * 0.06),
+                      _controlButton(
+                        icon: Icons.merge,
+                        onTap: () => controller.mergeAndExport(),
+                        refSize: refSize,
+                        color: ColorClass.glowBlue,
+                        bgColor: Colors.transparent,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Loading Overlay
+            Obx(
+              () => controller.isLoading.value
+                  ? Container(
+                      color: Colors.black54,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: ColorClass.glowBlue,
+                        ),
+                      ),
+                    )
+                  : SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -335,7 +324,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
   }) {
     return Container(
       width: width,
-      margin: EdgeInsets.symmetric(vertical: refSize * 0.02),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: ColorClass.buttonBg,
         border: Border(
@@ -353,11 +342,29 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
           Container(
             padding: EdgeInsets.all(refSize * 0.03),
             color: Colors.black.withValues(alpha: 0.2),
-            child: TextWidget(
-              text: title,
-              fontSize: refSize * 0.03,
-              textColor: ColorClass.textSecondary,
-              fontWeight: FontWeight.bold,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (title == "Files") ...[
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new,
+                      color: ColorClass.white,
+                      size: refSize * 0.03,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  SizedBox(width: refSize * 0.02),
+                ],
+                TextWidget(
+                  text: title,
+                  fontSize: refSize * 0.03,
+                  textColor: ColorClass.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ],
             ),
           ),
           Expanded(

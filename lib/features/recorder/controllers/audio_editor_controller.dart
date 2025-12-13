@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/services/audio_editing_service.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:recorder/core/services/audio_player_service.dart';
 // import 'package:recorder/features/recorder/models/track_data.dart'; // Defined in file for now or imported if separate.
 // Since I created a separate file but also redefined it in the controller file during the previous step (oops), I should actually REMOVE the duplicate definition from the controller and keep the import.
@@ -205,6 +206,74 @@ class AudioEditorController extends GetxController {
     isLoading.value = false;
     if (success != null) {
       Get.back();
+    }
+  }
+
+  Future<void> mergeAndExport() async {
+    // 1. Gather valid segments
+    final segments = <AudioSegment>[];
+    for (final track in tracks) {
+      if (track.filePath.isNotEmpty) {
+        segments.add(
+          AudioSegment(
+            filePath: track.filePath.value,
+            startSec: track.startMs / 1000.0,
+            endSec: track.endMs / 1000.0,
+          ),
+        );
+      }
+    }
+
+    if (segments.isEmpty) {
+      Get.snackbar("Error", "No tracks to merge");
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      // 2. Determine Output Path
+      // Use active track's directory or default
+      String dir = exportPath.value;
+      if (dir.isEmpty && activeTrack.filePath.isNotEmpty) {
+        dir = File(activeTrack.filePath.value).parent.path;
+      }
+      if (dir.isEmpty) {
+        // Fallback
+        dir = (await getApplicationDocumentsDirectory()).path;
+      }
+
+      final name = exportFileName.value.isNotEmpty
+          ? exportFileName.value
+          : "merged_${DateTime.now().millisecondsSinceEpoch}.wav";
+
+      // Ensure extension
+      String fullPath = '$dir/$name';
+      if (!fullPath.toLowerCase().endsWith('.wav')) {
+        // Force WAV for now or keep extension?
+        // Plan didn't specify format, but safer to use .wav or .mp3 based on encoder.
+        // Let's rely on ffmpeg auto-detection from extension, default .wav if none.
+        if (!name.contains('.')) fullPath += ".wav";
+      }
+
+      // 3. Call Service
+      final successPath = await _editingService.mergeAudioSegments(
+        segments,
+        fullPath,
+      );
+
+      if (successPath != null) {
+        Get.snackbar("Success", "Merged audio saved to $successPath");
+        // Optional: Open it or Go back
+        // Get.back();
+      } else {
+        Get.snackbar("Error", "Failed to merge audio");
+      }
+    } catch (e) {
+      print("Merge logic error: $e");
+      Get.snackbar("Error", "An error occurred: $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 

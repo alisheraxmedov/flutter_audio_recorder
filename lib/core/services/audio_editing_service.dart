@@ -195,4 +195,68 @@ class AudioEditingService {
     }
     return args;
   }
+
+  /// MERGE: Combine multiple segments into one file
+  Future<String?> mergeAudioSegments(
+    List<AudioSegment> segments,
+    String outputPath,
+  ) async {
+    if (segments.isEmpty) return null;
+
+    try {
+      // Inputs
+      // ffmpeg -i file1 -i file2 ...
+      // Filter
+      // [0:0]trim=start=S1:end=E1,asetpts=PTS-STARTPTS[v0];
+      // [1:0]trim=start=S2:end=E2,asetpts=PTS-STARTPTS[v1];
+      // [v0][v1]concat=n=2:v=0:a=1[out]
+
+      final sb = StringBuffer();
+      final inputs = <String>[];
+      final filters = <String>[];
+      final tracks = <String>[];
+
+      for (int i = 0; i < segments.length; i++) {
+        final seg = segments[i];
+        inputs.add('-i');
+        inputs.add('"${seg.filePath}"');
+
+        // Filter for this segment
+        // start and end are in seconds
+        // Use 'atrim' for audio, otherwise 'trim' defaults to video or mixed
+        filters.add(
+          '[$i:0]atrim=start=${seg.startSec}:end=${seg.endSec},asetpts=PTS-STARTPTS[a$i]',
+        );
+        tracks.add('[a$i]');
+      }
+
+      final filterComplex =
+          '${filters.join(';')};${tracks.join('')}concat=n=${segments.length}:v=0:a=1[out]';
+
+      // Build command
+      sb.write('-y '); // overwrite
+      for (final inp in inputs) {
+        sb.write('$inp ');
+      }
+      sb.write('-filter_complex "$filterComplex" -map "[out]" "$outputPath"');
+
+      final success = await _runFFmpeg(sb.toString());
+      return success ? outputPath : null;
+    } catch (e) {
+      debugPrint("Merge error: $e");
+      return null;
+    }
+  }
+}
+
+class AudioSegment {
+  final String filePath;
+  final double startSec;
+  final double endSec;
+
+  AudioSegment({
+    required this.filePath,
+    required this.startSec,
+    required this.endSec,
+  });
 }

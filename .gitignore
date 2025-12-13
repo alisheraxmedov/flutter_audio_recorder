@@ -45,14 +45,14 @@ app.*.map.json
 /android/app/release
 
 File structure docs
-FILE_STRUCTURE.md
+# FILE_STRUCTURE.md
 
 
 # Own files
 alisher.txt
-PLAN.md
+# PLAN.md
 FOLDER_MANAGEMENT_PLAN.md
-IMPORTANT.md
+# IMPORTANT.md
 
 
 # FOR TESTING
