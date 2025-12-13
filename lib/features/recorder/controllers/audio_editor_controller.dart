@@ -5,58 +5,101 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/services/audio_editing_service.dart';
 import 'package:recorder/core/services/audio_player_service.dart';
+// import 'package:recorder/features/recorder/models/track_data.dart'; // Defined in file for now or imported if separate.
+// Since I created a separate file but also redefined it in the controller file during the previous step (oops), I should actually REMOVE the duplicate definition from the controller and keep the import.
+import 'package:recorder/features/recorder/models/track_data.dart';
 
 class AudioEditorController extends GetxController {
   final AudioEditingService _editingService = AudioEditingService();
   final AudioPlayerService _audioPlayer = Get.find<AudioPlayerService>();
 
-  RxList<double> waveform = <double>[].obs;
+  // Tracks State
+  final RxList<TrackData> tracks = <TrackData>[
+    TrackData(id: 0),
+    TrackData(id: 1),
+    TrackData(id: 2),
+  ].obs;
+
+  // Active Track Logic
+  final RxInt activeTrackIndex = 0.obs;
+  TrackData get activeTrack => tracks[activeTrackIndex.value];
+
+  // Playback State
+  final RxDouble playbackProgress =
+      0.0.obs; // 0.0 to 1.0 relative to active track
+  Worker? _playerWorker;
+
   RxBool isLoading = false.obs;
-  RxString filePath = "".obs;
 
-  // Metadata
-  RxString fileName = "".obs;
-  RxString fileFormat = "".obs;
-  RxString fileSize = "".obs;
-
-  // Export Options
+  // Export Options (Linked to Active Track or Global?)
+  // Customarily linked to active track editing
   RxString exportFileName = "".obs;
   RxString exportPath = "".obs;
 
-  // Selection State (0.0 to 1.0 relative to total duration)
-  RxDouble startSelection = 0.0.obs;
-  RxDouble endSelection = 1.0.obs;
+  @override
+  void onInit() {
+    super.onInit();
+    // Sync Playback Progress
+    _playerWorker = ever(_audioPlayer.position, (pos) {
+      if (activeTrack.totalDurationMs.value > 0) {
+        final progress = pos.inMilliseconds / activeTrack.totalDurationMs.value;
+        playbackProgress.value = progress.clamp(0.0, 1.0);
+      } else {
+        playbackProgress.value = 0.0;
+      }
+    });
 
-  // Total duration of the file in milliseconds
-  RxInt totalDurationMs = 0.obs;
+    // Sync Export Name when active track changes
+    ever(activeTrackIndex, (_) {
+      if (activeTrack.fileName.value != "Empty") {
+        exportFileName.value = "edited_${activeTrack.fileName.value}";
+      }
+    });
+  }
 
-  // Computed properties for UI
-  int get startMs => (startSelection.value * totalDurationMs.value).toInt();
-  int get endMs => (endSelection.value * totalDurationMs.value).toInt();
+  @override
+  void onClose() {
+    _playerWorker?.dispose();
+    super.onClose();
+  }
 
-  void loadFile(String path) async {
-    filePath.value = path;
+  void setActiveTrack(int index) {
+    if (index >= 0 && index < tracks.length) {
+      activeTrackIndex.value = index;
+    }
+  }
+
+  void loadFile(String path, {int? trackIndex}) async {
+    int targetIndex = trackIndex ?? activeTrackIndex.value;
+    final track = tracks[targetIndex];
+
     isLoading.value = true;
 
     final file = File(path);
-    fileName.value = file.uri.pathSegments.last;
-    fileFormat.value = fileName.value.split('.').last.toUpperCase();
+    track.filePath.value = path;
+    track.fileName.value = file.uri.pathSegments.last;
+    track.fileFormat.value = track.fileName.value.split('.').last.toUpperCase();
 
     // Size logic
     try {
       final sizeBytes = await file.length();
-      fileSize.value = _formatBytes(sizeBytes);
+      track.fileSize.value = _formatBytes(sizeBytes);
     } catch (e) {
-      fileSize.value = "Unknown";
+      track.fileSize.value = "Unknown";
     }
 
-    // Default export name
-    exportFileName.value = "edited_${fileName.value}";
-    exportPath.value = file.parent.path;
+    // Default export name (only if active)
+    if (targetIndex == activeTrackIndex.value) {
+      exportFileName.value = "edited_${track.fileName.value}";
+      exportPath.value = file.parent.path;
+    }
 
     try {
-      totalDurationMs.value = await _editingService.getDurationMs(path);
-      waveform.value = await _editingService.extractWaveform(path);
+      track.totalDurationMs.value = await _editingService.getDurationMs(path);
+      track.waveform.value = await _editingService.extractWaveform(path);
+      // Reset selection
+      track.startSelection.value = 0.0;
+      track.endSelection.value = 1.0;
     } catch (e) {
       debugPrint("Error loading file: $e");
     } finally {
@@ -64,7 +107,7 @@ class AudioEditorController extends GetxController {
     }
   }
 
-  // Pick a new file (replaces current or adds to track in future)
+  // Pick a new file for the ACTIVE track
   Future<void> pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
@@ -77,24 +120,23 @@ class AudioEditorController extends GetxController {
 
   void updateSelection(double start, double end) {
     if (start >= 0 && end <= 1.0 && start < end) {
-      startSelection.value = start;
-      endSelection.value = end;
+      activeTrack.startSelection.value = start;
+      activeTrack.endSelection.value = end;
     }
   }
 
   // Update Selection from Text Input (e.g. "00:05.50")
   void updateSelectionFromText(String startText, String endText) {
-    // Basic parsing logic (MM:SS.ms)
-    // This is simplified; ideally use a robust parser.
     int? start = _parseTime(startText);
     int? end = _parseTime(endText);
+    final duration = activeTrack.totalDurationMs.value;
 
-    if (start != null && end != null && totalDurationMs > 0) {
-      double sPct = (start / totalDurationMs.value).clamp(0.0, 1.0);
-      double ePct = (end / totalDurationMs.value).clamp(0.0, 1.0);
+    if (start != null && end != null && duration > 0) {
+      double sPct = (start / duration).clamp(0.0, 1.0);
+      double ePct = (end / duration).clamp(0.0, 1.0);
       if (sPct < ePct) {
-        startSelection.value = sPct;
-        endSelection.value = ePct;
+        activeTrack.startSelection.value = sPct;
+        activeTrack.endSelection.value = ePct;
       }
     }
   }
@@ -120,10 +162,12 @@ class AudioEditorController extends GetxController {
       return;
     }
 
-    final Duration start = Duration(milliseconds: startMs);
-    final Duration end = Duration(milliseconds: endMs);
+    if (activeTrack.filePath.isEmpty) return;
 
-    await _audioPlayer.play(filePath.value);
+    final Duration start = Duration(milliseconds: activeTrack.startMs);
+    final Duration end = Duration(milliseconds: activeTrack.endMs);
+
+    await _audioPlayer.play(activeTrack.filePath.value);
     await _audioPlayer.seek(start);
 
     final durationToPlay = end - start;
@@ -135,11 +179,13 @@ class AudioEditorController extends GetxController {
   }
 
   Future<void> trimAudio() async {
+    if (activeTrack.filePath.isEmpty) return;
+
     isLoading.value = true;
     final success = await _editingService.trim(
-      filePath.value,
-      startMs / 1000.0,
-      endMs / 1000.0,
+      activeTrack.filePath.value,
+      activeTrack.startMs / 1000.0,
+      activeTrack.endMs / 1000.0,
     );
     isLoading.value = false;
     if (success != null) {
@@ -148,11 +194,13 @@ class AudioEditorController extends GetxController {
   }
 
   Future<void> cutAudio() async {
+    if (activeTrack.filePath.isEmpty) return;
+
     isLoading.value = true;
     final success = await _editingService.cut(
-      filePath.value,
-      startMs / 1000.0,
-      endMs / 1000.0,
+      activeTrack.filePath.value,
+      activeTrack.startMs / 1000.0,
+      activeTrack.endMs / 1000.0,
     );
     isLoading.value = false;
     if (success != null) {

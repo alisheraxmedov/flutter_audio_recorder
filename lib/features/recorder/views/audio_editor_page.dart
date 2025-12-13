@@ -7,9 +7,9 @@ import 'package:recorder/features/recorder/widgets/audio_editor/waveform_painter
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 
 class AudioEditorPage extends StatefulWidget {
-  final String filePath;
+  final String? filePath;
 
-  const AudioEditorPage({super.key, required this.filePath});
+  const AudioEditorPage({super.key, this.filePath});
 
   @override
   State<AudioEditorPage> createState() => _AudioEditorPageState();
@@ -27,25 +27,72 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
   void initState() {
     super.initState();
     controller = Get.put(AudioEditorController());
-    controller.loadFile(widget.filePath);
+    if (widget.filePath != null) {
+      controller.loadFile(widget.filePath!);
+    }
 
     // Sync text fields when selection changes programmatically (e.g. dragging)
-    ever(controller.startSelection, (_) {
-      if (!_startController.selection.isValid) {
-        _startController.text = controller.formatTime(controller.startMs);
-      }
-    });
-    ever(controller.endSelection, (_) {
-      if (!_endController.selection.isValid) {
-        _endController.text = controller.formatTime(controller.endMs);
-      }
-    });
+    // We listen to the ACTIVE track's logic.
+    // Use worker that recreates when active track ID changes?
+    // Or just listen to controller.activeTrack.startSelection - but activeTrack reference changes.
+    // Better: listen to controller.tracks and when selection of *any* track changes, update IF it is active?
+    // Easiest: interval or rebuild.
+    // Correct GetX way:
+    ever(controller.activeTrackIndex, (_) => _updateTextFields());
+
+    // We also need to listen to values of CURRENT active track.
+    // Since activeTrack object stays same in list, but the pointer activeTrackIndex changes.
+    // We can just listen to the stream of the active track properties dynamically?
+    // Actually, let's just create a generic listener that updates UI if the changed track is the active one.
+
+    // Simpler: Just rely on building. The TextFields are the issue.
+    // Let's attach listeners to the observables of all tracks? No.
+    // Let's just update text when text field is built? No, we need two-way.
+
+    // Let's use `interval` or `ever` on the specific properties of the active track, re-binding when index changes.
+    _bindSelectionListeners();
+    ever(controller.activeTrackIndex, (_) => _bindSelectionListeners());
+
     // Sync export name
     ever(controller.exportFileName, (_) {
       if (_exportNameController.text != controller.exportFileName.value) {
         _exportNameController.text = controller.exportFileName.value;
       }
     });
+  }
+
+  Worker? _startWorker;
+  Worker? _endWorker;
+
+  void _bindSelectionListeners() {
+    _startWorker?.dispose();
+    _endWorker?.dispose();
+
+    final track = controller.activeTrack;
+    _updateTextFields(); // Initial update on switch
+
+    _startWorker = ever(track.startSelection, (_) {
+      if (!_startController.selection.isValid) {
+        _startController.text = controller.formatTime(
+          controller.activeTrack.startMs,
+        );
+      }
+    });
+
+    _endWorker = ever(track.endSelection, (_) {
+      if (!_endController.selection.isValid) {
+        _endController.text = controller.formatTime(
+          controller.activeTrack.endMs,
+        );
+      }
+    });
+  }
+
+  void _updateTextFields() {
+    _startController.text = controller.formatTime(
+      controller.activeTrack.startMs,
+    );
+    _endController.text = controller.formatTime(controller.activeTrack.endMs);
   }
 
   @override
@@ -80,16 +127,15 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
         ),
         title: Obx(
           () => TextWidget(
-            // Granular Obx for title
-            text: controller.fileName.value,
+            // Granular Obx for title (Active Track)
+            text: controller.activeTrack.fileName.value,
             textColor: ColorClass.white,
             fontSize: refSize * 0.035,
           ),
         ),
         centerTitle: true,
       ),
-      // Removed top-level Obx wrapper to avoid "Improper Use" error
-      // Use Obx only where specific observables are read.
+      // Removed top-level Obx wrapper
       body: Stack(
         children: [
           Column(
@@ -112,6 +158,12 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                       child: DropTarget(
                         onDragDone: (detail) {
                           if (detail.files.isNotEmpty) {
+                            // Load into currently active track or find first empty?
+                            // User logic: "Drag to specific slot".
+                            // Since this global drop zone covers everything, we default to active track.
+                            // BUT: We want specific slot dropping.
+                            // Ideally, we should keep the global one for "General load" or remove it if we want precise dropping.
+                            // Let's keep it but maybe default to active.
                             controller.loadFile(detail.files.first.path);
                           }
                         },
@@ -123,38 +175,41 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
 
                               // Tracks Stack
                               Expanded(
-                                child: Column(
-                                  children: [
-                                    // Track 1 (Active)
-                                    Expanded(
-                                      child: _buildTrackSlot(
-                                        refSize: refSize,
-                                        trackName: "Track 1",
-                                        color: ColorClass.glowBlue,
-                                        isActive: true,
-                                      ),
-                                    ),
-                                    SizedBox(height: refSize * 0.02),
-                                    // Track 2 (Empty)
-                                    Expanded(
-                                      child: _buildTrackSlot(
-                                        refSize: refSize,
-                                        trackName: "Track 2",
-                                        color: Colors.purpleAccent,
-                                        isActive: false,
-                                      ),
-                                    ),
-                                    SizedBox(height: refSize * 0.02),
-                                    // Track 3 (Empty)
-                                    Expanded(
-                                      child: _buildTrackSlot(
-                                        refSize: refSize,
-                                        trackName: "Track 3",
-                                        color: Colors.orangeAccent,
-                                        isActive: false,
-                                      ),
-                                    ),
-                                  ],
+                                child: Obx(
+                                  () => Column(
+                                    children: controller.tracks.map((track) {
+                                      return Expanded(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: refSize * 0.02,
+                                          ),
+                                          child: DropTarget(
+                                            onDragDone: (detail) {
+                                              if (detail.files.isNotEmpty) {
+                                                controller.setActiveTrack(
+                                                  track.id,
+                                                ); // Auto-select logic?
+                                                controller.loadFile(
+                                                  detail.files.first.path,
+                                                  trackIndex: track.id,
+                                                );
+                                              }
+                                            },
+                                            child: _buildTrackSlot(
+                                              refSize: refSize,
+                                              trackData:
+                                                  track, // Pass full object
+                                              isActive:
+                                                  controller
+                                                      .activeTrackIndex
+                                                      .value ==
+                                                  track.id,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
                               ),
                             ],
@@ -338,7 +393,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
         SizedBox(height: refSize * 0.03),
 
         TextWidget(
-          text: "Project Files",
+          text: "Active Track Files",
           fontSize: refSize * 0.025,
           textColor: ColorClass.textSecondary,
         ),
@@ -363,7 +418,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                 SizedBox(width: 8),
                 Expanded(
                   child: TextWidget(
-                    text: controller.fileName.value,
+                    text: controller.activeTrack.fileName.value,
                     fontSize: refSize * 0.025,
                     textColor: ColorClass.white,
                     overflow: TextOverflow.ellipsis,
@@ -470,12 +525,21 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Obx(() => _infoRow("Format", controller.fileFormat.value, refSize)),
-        Obx(() => _infoRow("Size", controller.fileSize.value, refSize)),
+        Obx(
+          () => _infoRow(
+            "Format",
+            controller.activeTrack.fileFormat.value,
+            refSize,
+          ),
+        ),
+        Obx(
+          () =>
+              _infoRow("Size", controller.activeTrack.fileSize.value, refSize),
+        ),
         Obx(
           () => _infoRow(
             "Duration",
-            controller.formatTime(controller.totalDurationMs.value),
+            controller.formatTime(controller.activeTrack.totalDurationMs.value),
             refSize,
           ),
         ),
@@ -561,139 +625,152 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
 
   Widget _buildTrackSlot({
     required double refSize,
-    required String trackName,
-    required Color color,
-    bool isActive = false,
+    required dynamic
+    trackData, // Using dynamic until we import properly to avoid analysis error in tool call? No, can use Object/var or import.
+    required bool isActive,
   }) {
-    Widget slotContent = Container(
-      decoration: BoxDecoration(
-        color: ColorClass.buttonBg.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(refSize * 0.03),
-        border: Border.all(
-          color: isActive
-              ? color.withValues(alpha: 0.5)
-              : ColorClass.white.withValues(alpha: 0.05),
+    // trackData is actually TrackData type.
+    final track = trackData; // Cast if needed
+
+    Widget slotContent = GestureDetector(
+      onTap: () {
+        controller.setActiveTrack(track.id);
+      },
+      onDoubleTap: () {
+        controller.setActiveTrack(track.id);
+        controller.pickFile();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: ColorClass.buttonBg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(refSize * 0.03),
+          border: Border.all(
+            color: isActive
+                ? ColorClass.glowBlue.withValues(alpha: 0.8) // Highight active
+                : ColorClass.white.withValues(alpha: 0.05),
+            width: isActive ? 2.0 : 1.0,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // Track Header (Left)
-          Container(
-            width: refSize * 0.25,
-            padding: EdgeInsets.all(refSize * 0.02),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.horizontal(
-                left: Radius.circular(refSize * 0.03),
+        child: Column(
+          children: [
+            // Track Header (Top Bar)
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: refSize * 0.02,
+                vertical: refSize * 0.015,
               ),
-              border: Border(
-                right: BorderSide(
-                  color: ColorClass.white.withValues(alpha: 0.05),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? ColorClass.glowBlue.withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(refSize * 0.03),
+                  topRight: Radius.circular(refSize * 0.03),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: ColorClass.white.withValues(alpha: 0.05),
+                  ),
                 ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.graphic_eq, color: color, size: refSize * 0.03),
-                    SizedBox(width: 4),
-                    Expanded(
-                      child: TextWidget(
-                        text: trackName,
-                        fontSize: refSize * 0.025,
+              child: Row(
+                children: [
+                  // Icon + Name
+                  Icon(
+                    Icons.graphic_eq,
+                    color: isActive ? ColorClass.glowBlue : Colors.grey,
+                    size: refSize * 0.03,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Obx(
+                      () => TextWidget(
+                        text: "Track ${track.id + 1}: ${track.fileName.value}",
+                        fontSize: refSize * 0.020,
                         textColor: ColorClass.white,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ],
-                ),
-                Spacer(),
-                Row(
-                  children: [
-                    _miniButton("M", Colors.redAccent, refSize),
-                    SizedBox(width: 4),
-                    _miniButton("S", Colors.yellow, refSize),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Track Content (Waveform)
-          Expanded(
-            child: isActive
-                ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      // WRAP THIS IN OBX TO REACT TO WAVEFORM & SELECTION CHANGES
-                      return Obx(() {
-                        if (controller.waveform.isEmpty) {
-                          return Center(
-                            child: TextWidget(
-                              text: "No Data",
-                              fontSize: refSize * 0.03,
-                              textColor: ColorClass.textSecondary,
-                            ),
-                          );
-                        }
-                        return GestureDetector(
-                          onHorizontalDragUpdate: (details) {
-                            final double dx = details.localPosition.dx;
-                            final pct = (dx / constraints.maxWidth).clamp(
-                              0.0,
-                              1.0,
-                            );
-                            double distStart =
-                                (pct - controller.startSelection.value).abs();
-                            double distEnd =
-                                (pct - controller.endSelection.value).abs();
-                            if (distStart < distEnd) {
-                              controller.updateSelection(
-                                pct,
-                                controller.endSelection.value,
-                              );
-                            } else {
-                              controller.updateSelection(
-                                controller.startSelection.value,
-                                pct,
-                              );
-                            }
-                          },
-                          child: CustomPaint(
-                            size: Size(
-                              constraints.maxWidth,
-                              constraints.maxHeight,
-                            ),
-                            painter: WaveformPainter(
-                              samples: controller.waveform,
-                              startSelection: controller.startSelection.value,
-                              endSelection: controller.endSelection.value,
-                              waveColor: ColorClass.white.withValues(
-                                alpha: 0.2,
-                              ),
-                              selectedWaveColor: ColorClass.glowBlue,
-                              selectionColor: ColorClass.glowBlue.withValues(
-                                alpha: 0.1,
-                              ),
-                            ),
-                          ),
-                        );
-                      });
-                    },
-                  )
-                : Container(
-                    alignment: Alignment.center,
-                    child: TextWidget(
-                      text: "Empty Track",
-                      fontSize: refSize * 0.02,
-                      textColor: ColorClass.textSecondary.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
                   ),
-          ),
-        ],
+                  SizedBox(width: 16),
+                  // Controls (M, S)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _miniButton("M", Colors.redAccent, refSize),
+                      SizedBox(width: 4),
+                      _miniButton("S", Colors.yellow, refSize),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Track Content (Waveform) - Full Width
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Obx(() {
+                    if (track.waveform.isEmpty) {
+                      return Center(
+                        child: TextWidget(
+                          text: "No Data (Drop File / Double Click)",
+                          fontSize: refSize * 0.03,
+                          textColor: ColorClass.textSecondary,
+                        ),
+                      );
+                    }
+                    return GestureDetector(
+                      onHorizontalDragUpdate: (details) {
+                        if (!isActive) return;
+                        controller.setActiveTrack(track.id);
+
+                        final double dx = details.localPosition.dx;
+                        final pct = (dx / constraints.maxWidth).clamp(0.0, 1.0);
+
+                        if (isActive) {
+                          double distStart = (pct - track.startSelection.value)
+                              .abs();
+                          double distEnd = (pct - track.endSelection.value)
+                              .abs();
+                          if (distStart < distEnd) {
+                            controller.updateSelection(
+                              pct,
+                              track.endSelection.value,
+                            );
+                          } else {
+                            controller.updateSelection(
+                              track.startSelection.value,
+                              pct,
+                            );
+                          }
+                        }
+                      },
+                      child: CustomPaint(
+                        size: Size(constraints.maxWidth, constraints.maxHeight),
+                        painter: WaveformPainter(
+                          samples: track.waveform,
+                          startSelection: track.startSelection.value,
+                          endSelection: track.endSelection.value,
+                          playbackProgress: isActive
+                              ? controller.playbackProgress.value
+                              : 0.0,
+                          waveColor: ColorClass.white.withValues(alpha: 0.2),
+                          selectedWaveColor: isActive
+                              ? ColorClass.glowBlue
+                              : Colors.white,
+                          selectionColor: isActive
+                              ? ColorClass.glowBlue.withValues(alpha: 0.1)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    );
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
 

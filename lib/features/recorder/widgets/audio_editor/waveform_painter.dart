@@ -5,6 +5,7 @@ class WaveformPainter extends CustomPainter {
   final List<double> samples;
   final double startSelection; // 0.0 to 1.0
   final double endSelection; // 0.0 to 1.0
+  final double playbackProgress; // 0.0 to 1.0
   final Color waveColor;
   final Color selectedWaveColor;
   final Color selectionColor;
@@ -13,9 +14,10 @@ class WaveformPainter extends CustomPainter {
     required this.samples,
     required this.startSelection,
     required this.endSelection,
+    this.playbackProgress = 0.0, // Default 0
     this.waveColor = Colors.grey,
     this.selectedWaveColor = ColorClass.glowBlue,
-    this.selectionColor = const Color(0x332196F3), // Blue with opacity
+    this.selectionColor = const Color(0x332196F3),
   });
 
   @override
@@ -32,7 +34,6 @@ class WaveformPainter extends CustomPainter {
 
     // Spacing between bars
     final double barWidth = width / samples.length;
-    // Gap can be minimal or 0 if samples matches pixels
 
     // Draw selection background
     final double selectionStartX = width * startSelection;
@@ -65,6 +66,22 @@ class WaveformPainter extends CustomPainter {
       paint.color = isSelected ? selectedWaveColor : waveColor;
 
       canvas.drawLine(Offset(x, top), Offset(x, bottom), paint);
+    }
+
+    // DRAW PLAYBACK HEAD
+    if (playbackProgress > 0.0) {
+      final double headX = width * playbackProgress;
+      final headPaint = Paint()
+        ..color = Colors.white
+        ..strokeWidth = 2.0; // Slightly thicker
+      canvas.drawLine(Offset(headX, 0), Offset(headX, height), headPaint);
+
+      // Optional: Red Dot at top
+      canvas.drawCircle(
+        Offset(headX, 0),
+        4.0,
+        Paint()..color = Colors.redAccent,
+      );
     }
   }
 

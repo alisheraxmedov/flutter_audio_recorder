@@ -6,6 +6,7 @@ import 'package:recorder/features/recorder/controllers/main_controller.dart';
 import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 import 'package:recorder/features/recorder/views/all_records_page.dart';
 import 'package:recorder/features/recorder/views/settings_page.dart';
+import 'package:recorder/features/recorder/views/audio_editor_page.dart';
 import 'package:recorder/features/recorder/widgets/recorder_body.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 import 'package:recorder/l10n/app_localizations.dart';
@@ -84,6 +85,13 @@ class DesktopMainPage extends StatelessWidget {
                         mainController,
                         2,
                         AppLocalizations.of(context)!.settingsTitle,
+                        Icons.cut,
+                      ),
+                      _buildMenuItem(
+                        context,
+                        mainController,
+                        3,
+                        AppLocalizations.of(context)!.settingsTitle,
                         Icons.settings,
                       ),
                     ],
@@ -109,6 +117,7 @@ class DesktopMainPage extends StatelessWidget {
                             ),
                           ),
                         ),
+                        const AudioEditorPage(),
                         const SettingsPage(),
                       ],
                     );
