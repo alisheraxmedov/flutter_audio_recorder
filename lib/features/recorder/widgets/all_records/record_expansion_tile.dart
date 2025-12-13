@@ -18,6 +18,7 @@ class RecordExpansionTile extends StatefulWidget {
   final VoidCallback onRename;
   final VoidCallback onMove;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   final Function(String) onShare;
 
   const RecordExpansionTile({
@@ -31,6 +32,7 @@ class RecordExpansionTile extends StatefulWidget {
     required this.onRename,
     required this.onMove,
     required this.onDelete,
+    required this.onEdit,
     required this.onShare,
   });
 
@@ -160,6 +162,12 @@ class _RecordExpansionTileState extends State<RecordExpansionTile> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _iconButton(
+            Icons.graphic_eq,
+            ColorClass.white,
+            widget.onEdit,
+            "Edit",
+          ),
+          _iconButton(
             Icons.edit_outlined,
             ColorClass.white,
             widget.onRename,
@@ -215,6 +223,9 @@ class _RecordExpansionTileState extends State<RecordExpansionTile> {
       ),
       onSelected: (value) {
         switch (value) {
+          case 'edit':
+            widget.onEdit();
+            break;
           case 'rename':
             widget.onRename();
             break;
@@ -230,6 +241,7 @@ class _RecordExpansionTileState extends State<RecordExpansionTile> {
         }
       },
       itemBuilder: (context) => [
+        _popupItem('edit', Icons.graphic_eq, "Edit Audio"),
         _popupItem('rename', Icons.edit_outlined, widget.l10n.rename),
         _popupItem('move', Icons.drive_file_move_outline, "Move"),
         _popupItem('share', Icons.share_outlined, "Share"),

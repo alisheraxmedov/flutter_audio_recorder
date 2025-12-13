@@ -6,14 +6,15 @@ import 'package:recorder/features/recorder/controllers/recorder_controller.dart'
 import 'package:recorder/features/recorder/widgets/all_records/create_folder_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/delete_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/folder_options_sheet.dart';
-import 'package:recorder/features/recorder/widgets/magic_widgets/folder_widget.dart';
 import 'package:recorder/features/recorder/widgets/all_records/move_dialog.dart';
 import 'package:recorder/features/recorder/widgets/all_records/record_expansion_tile.dart';
 import 'package:recorder/features/recorder/widgets/all_records/rename_dialog.dart';
+import 'package:recorder/features/recorder/widgets/magic_widgets/folder_widget.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
-import 'package:recorder/features/recorder/models/sort_option.dart';
 import 'package:recorder/l10n/app_localizations.dart';
+import 'package:recorder/features/recorder/models/sort_option.dart';
 import 'package:recorder/core/services/share_service.dart';
+import 'package:recorder/features/recorder/views/audio_editor_page.dart';
 
 class AllRecordsPage extends StatelessWidget {
   const AllRecordsPage({super.key});
@@ -228,6 +229,8 @@ class AllRecordsPage extends StatelessWidget {
                         refSize: refSize,
                         l10n: l10n,
                       ),
+                      onEdit: () =>
+                          Get.to(() => AudioEditorPage(filePath: entity.path)),
                       onShare: _shareFile,
                     );
                   }, childCount: controller.entities.whereType<File>().length),
