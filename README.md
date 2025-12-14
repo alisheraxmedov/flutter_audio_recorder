@@ -1,5 +1,7 @@
 # Voice Recorder
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A cross-platform audio recording application built with Flutter.
 
 ## Overview
@@ -36,4 +38,8 @@ flutter run
 flutter run -d linux
 ```
 
+## License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+© 2025 Alisher Axmedov
