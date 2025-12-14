@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
 import 'package:recorder/core/services/audio_editing_service.dart';
+import 'package:recorder/features/recorder/widgets/text_widget.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:recorder/core/services/audio_player_service.dart';
+import 'package:recorder/core/constants/app_colors.dart';
+// import 'package:recorder/features/recorder/controllers/recorder_controller.dart';
 // import 'package:recorder/features/recorder/models/track_data.dart'; // Defined in file for now or imported if separate.
 // Since I created a separate file but also redefined it in the controller file during the previous step (oops), I should actually REMOVE the duplicate definition from the controller and keep the import.
 import 'package:recorder/features/recorder/models/track_data.dart';
@@ -270,10 +274,111 @@ class AudioEditorController extends GetxController {
         Get.snackbar("Error", "Failed to merge audio");
       }
     } catch (e) {
-      print("Merge logic error: $e");
+      debugPrint("Merge logic error: $e");
       Get.snackbar("Error", "An error occurred: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // --- UI Helpers & Folder Selection ---
+
+  Color getTrackColor(int index) {
+    switch (index % 3) {
+      case 0:
+        return ColorClass.trackBlue;
+      case 1:
+        return ColorClass.trackGreen;
+      case 2:
+        return ColorClass.trackOrange;
+      default:
+        return ColorClass.white;
+    }
+  }
+
+  void selectExportFolder() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final dir = Directory('${appDir.path}/recordings');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      // List directories
+      final entities = dir.listSync();
+      final folders = entities.whereType<Directory>().toList();
+
+      // 3. Show Dialog
+      final size = MediaQuery.of(
+        Get.context!,
+      ).size; // Use context for size as per rule
+      final refSize = size.shortestSide.clamp(0.0, 500.0);
+
+      Get.defaultDialog(
+        title: "Select Folder",
+        backgroundColor: ColorClass.buttonBg, // Use AppColors
+        titleStyle: TextStyle(
+          color: ColorClass.white,
+          fontSize: refSize * 0.035,
+          fontFamily: 'Inter',
+        ),
+        content: SizedBox(
+          height: size.height * 0.4,
+          width: double.maxFinite,
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            itemCount: folders.length + 1,
+            separatorBuilder: (context, index) =>
+                Divider(color: ColorClass.white.withValues(alpha: 0.1)),
+            itemBuilder: (ctx, i) {
+              if (i == 0) {
+                return ListTile(
+                  leading: Icon(
+                    Icons.home,
+                    color: ColorClass.white,
+                    size: refSize * 0.035,
+                  ),
+                  title: TextWidget(
+                    text: "Main Recordings",
+                    textColor: ColorClass.white,
+                    fontSize: refSize * 0.03,
+                  ),
+                  onTap: () {
+                    exportPath.value = dir.path;
+                    Get.back();
+                  },
+                );
+              }
+              final folder = folders[i - 1];
+              final name = folder.path.split(Platform.pathSeparator).last;
+              return ListTile(
+                leading: Icon(
+                  Icons.folder,
+                  color: ColorClass.folderIcon, // Use AppColors
+                  size: refSize * 0.035,
+                ),
+                title: TextWidget(
+                  text: name,
+                  textColor: ColorClass.white,
+                  fontSize: refSize * 0.03,
+                ),
+                onTap: () {
+                  exportPath.value = folder.path;
+                  Get.back();
+                },
+              );
+            },
+          ),
+        ),
+        radius: 10,
+      );
+    } catch (e) {
+      debugPrint("Error selecting folder: $e");
+      Get.snackbar(
+        "Error",
+        "Could not load folders: $e",
+        colorText: ColorClass.white,
+        backgroundColor: ColorClass.buttonBg,
+      );
     }
   }
 

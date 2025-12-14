@@ -21,4 +21,9 @@ class ColorClass {
 
   static const Color transparent = Colors.transparent;
   static const Color borderLight = Colors.white10;
+
+  // Track Colors
+  static const Color trackBlue = Colors.blueAccent;
+  static const Color trackGreen = Colors.greenAccent;
+  static const Color trackOrange = Colors.orangeAccent;
 }
