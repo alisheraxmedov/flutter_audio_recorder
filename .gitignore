@@ -57,3 +57,7 @@ IMPORTANT.md
 
 # FOR TESTING
 lib/features/custom_widgets
+
+# Environment variables (API keys)
+.env
+!.env.example

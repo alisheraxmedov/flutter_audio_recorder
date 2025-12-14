@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
 
 void main() async {
@@ -10,6 +11,11 @@ void main() async {
 
   // Initialize GetStorage
   await GetStorage.init();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env").catchError((_) {
+    debugPrint("Warning: .env file not found. Using default values.");
+  });
 
   if (!kIsWeb &&
       (kDebugMode ||

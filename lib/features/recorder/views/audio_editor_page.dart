@@ -9,6 +9,7 @@ import 'package:recorder/features/recorder/widgets/audio_editor/track_slot_widge
 import 'package:recorder/features/recorder/widgets/audio_editor/files_panel_content.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/info_panel_content.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/effects_panel_content.dart';
+import 'package:recorder/features/recorder/views/ai_page.dart';
 
 class AudioEditorPage extends StatefulWidget {
   final String? filePath;
@@ -284,6 +285,26 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                         onTap: () => controller.mergeAndExport(),
                         refSize: refSize,
                         color: ColorClass.glowBlue,
+                        bgColor: Colors.transparent,
+                      ),
+                      SizedBox(width: refSize * 0.06),
+                      // AI Button
+                      EditorControlButton(
+                        icon: Icons.auto_awesome,
+                        onTap: () {
+                          if (controller.activeTrack.filePath.isNotEmpty) {
+                            Get.to(
+                              () => AiPage(
+                                audioPath:
+                                    controller.activeTrack.filePath.value,
+                              ),
+                            );
+                          } else {
+                            Get.snackbar('Error', 'No audio file loaded');
+                          }
+                        },
+                        refSize: refSize,
+                        color: ColorClass.glowPurple,
                         bgColor: Colors.transparent,
                       ),
                     ],
