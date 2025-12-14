@@ -8,8 +8,6 @@ import 'package:recorder/features/recorder/views/all_records_page.dart';
 import 'package:recorder/features/recorder/views/settings_page.dart';
 import 'package:recorder/features/recorder/views/audio_editor_page.dart';
 import 'package:recorder/features/recorder/widgets/recorder_body.dart';
-import 'package:recorder/features/recorder/widgets/text_widget.dart';
-import 'package:recorder/l10n/app_localizations.dart';
 
 class DesktopMainPage extends StatelessWidget {
   const DesktopMainPage({super.key});
@@ -24,180 +22,236 @@ class DesktopMainPage extends StatelessWidget {
       Get.put(AudioPlayerService());
     }
     final mainController = Get.find<MainController>();
-    // final size = MediaQuery.of(context).size;
 
-    // Fixed sizes for Static Desktop (950x650)
-    // We don't rely heavily on screen size since the window is static.
+    // MediaQuery based responsive sizing
+    final size = MediaQuery.of(context).size;
+    final refSize = size.shortestSide.clamp(400.0, 800.0);
 
-    // Sidebar logic: Fixed width
-    const double sidebarWidth = 260.0;
+    // Sidebar width based on screen width (6% of width, clamped between 60-80)
+    final sidebarWidth = (size.width * 0.06).clamp(60.0, 80.0);
 
-    // Inner scale for the RecorderBody components (Visualizer, Timer).
-    // Passing 650 was too big. 380 is a reasonable "mobile-like" height for the inner content.
-    const double contentRefSize = 380.0;
+    // Content ref size for recorder body
+    final contentRefSize = refSize * 0.55;
+
+    // Bottom bar height
+    final bottomBarHeight = refSize * 0.12;
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
-      body: Column(
+      body: Row(
         children: [
-          // Main Body: Sidebar + Content
+          // NEW VERTICAL ICON SIDEBAR
+          _buildIconSidebar(context, mainController, sidebarWidth, refSize),
+
+          // MAIN CONTENT AREA
           Expanded(
-            child: Row(
-              children: [
-                // SIDEBAR
-                Container(
-                  width: sidebarWidth,
-                  color: Colors.black.withValues(alpha: 0.3),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Obx(() {
+              return IndexedStack(
+                index: mainController.currentIndex.value,
+                children: [
+                  const AllRecordsPage(),
+                  // Recorder page
+                  Stack(
                     children: [
-                      const SizedBox(height: 40),
-                      // APP NAME
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: TextWidget(
-                          text: AppLocalizations.of(
-                            context,
-                          )!.appTitle.toUpperCase(),
-                          textColor: ColorClass.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: SizedBox(
+                          height: size.height * 0.65,
+                          child: RecorderBody(
+                            controller: Get.find<RecorderController>(),
+                            refSize: contentRefSize,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 40),
-                      // MENU ITEMS
-                      _buildMenuItem(
-                        context,
-                        mainController,
-                        1,
-                        AppLocalizations.of(context)!.appTitle,
-                        Icons.mic,
-                      ),
-                      _buildMenuItem(
-                        context,
-                        mainController,
-                        0,
-                        AppLocalizations.of(context)!.allRecordsTitle,
-                        Icons.list,
-                      ),
-                      _buildMenuItem(
-                        context,
-                        mainController,
-                        2,
-                        AppLocalizations.of(context)!.settingsTitle,
-                        Icons.cut,
-                      ),
-                      _buildMenuItem(
-                        context,
-                        mainController,
-                        3,
-                        AppLocalizations.of(context)!.settingsTitle,
-                        Icons.settings,
+                      // Bottom control bar for recorder
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildBottomControlBar(
+                          context,
+                          bottomBarHeight,
+                          refSize,
+                        ),
                       ),
                     ],
                   ),
-                ),
-
-                // MAIN CONTENT AREA
-                Expanded(
-                  child: Obx(() {
-                    return IndexedStack(
-                      index: mainController.currentIndex.value,
-                      children: [
-                        const AllRecordsPage(),
-                        // Use RecorderBody directly to avoid duplicate controls
-                        Center(
-                          // Center the body vertically/horizontally
-                          child: SizedBox(
-                            // Constrain the height so the wave widget doesn't overflow
-                            height: 500,
-                            child: RecorderBody(
-                              controller: Get.find<RecorderController>(),
-                              refSize: contentRefSize,
-                            ),
-                          ),
-                        ),
-                        const AudioEditorPage(),
-                        const SettingsPage(),
-                      ],
-                    );
-                  }),
-                ),
-              ],
-            ),
+                  const AudioEditorPage(),
+                  const SettingsPage(),
+                ],
+              );
+            }),
           ),
-
-          // BOTTOM CONTROL BAR (Footer)
-          Obx(() {
-            if (mainController.currentIndex.value == 1) {
-              return _buildBottomControlBar(context);
-            } else {
-              // Minimal footer
-              return const SizedBox.shrink();
-            }
-          }),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(
+  /// New vertical icon-only sidebar matching the design
+  Widget _buildIconSidebar(
     BuildContext context,
     MainController controller,
+    double sidebarWidth,
+    double refSize,
+  ) {
+    final logoSize = refSize * 0.06;
+    final iconSize = refSize * 0.03;
+    final itemHeight = refSize * 0.07;
+
+    return Container(
+      width: sidebarWidth,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF1A1A2E),
+            ColorClass.glowPurple.withValues(alpha: 0.3),
+            const Color(0xFF0F0F1A),
+          ],
+        ),
+        border: Border(
+          right: BorderSide(
+            color: ColorClass.glowPurple.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: refSize * 0.03),
+
+          // LOGO / BRANDING
+          Container(
+            width: logoSize,
+            height: logoSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [ColorClass.glowBlue, ColorClass.glowPurple],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: ColorClass.glowBlue.withValues(alpha: 0.5),
+                  blurRadius: refSize * 0.02,
+                  spreadRadius: refSize * 0.003,
+                ),
+              ],
+            ),
+            child: Icon(Icons.bolt, color: Colors.white, size: logoSize * 0.55),
+          ),
+
+          SizedBox(height: refSize * 0.04),
+
+          // MENU ITEMS
+          _buildSidebarIcon(
+            controller,
+            0,
+            Icons.dashboard_outlined,
+            Icons.dashboard,
+            sidebarWidth,
+            itemHeight,
+            iconSize,
+          ),
+          _buildSidebarIcon(
+            controller,
+            1,
+            Icons.mic_none_outlined,
+            Icons.mic,
+            sidebarWidth,
+            itemHeight,
+            iconSize,
+          ),
+          _buildSidebarIcon(
+            controller,
+            2,
+            Icons.edit_outlined,
+            Icons.edit,
+            sidebarWidth,
+            itemHeight,
+            iconSize,
+          ),
+          _buildSidebarIcon(
+            controller,
+            3,
+            Icons.settings_outlined,
+            Icons.settings,
+            sidebarWidth,
+            itemHeight,
+            iconSize,
+          ),
+
+          const Spacer(),
+
+          // BOTTOM ICON (Logout/Exit)
+          Container(
+            margin: EdgeInsets.only(bottom: refSize * 0.03),
+            child: IconButton(
+              onPressed: () => Get.back(),
+              icon: Icon(
+                Icons.logout,
+                color: ColorClass.textSecondary,
+                size: iconSize,
+              ),
+              tooltip: 'Exit',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebarIcon(
+    MainController controller,
     int index,
-    String title,
-    IconData icon,
+    IconData outlinedIcon,
+    IconData filledIcon,
+    double sidebarWidth,
+    double itemHeight,
+    double iconSize,
   ) {
     return Obx(() {
       final isSelected = controller.currentIndex.value == index;
-      return InkWell(
+      return GestureDetector(
         onTap: () => controller.changePage(index),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+          width: sidebarWidth,
+          height: itemHeight,
+          margin: EdgeInsets.symmetric(vertical: itemHeight * 0.08),
           decoration: BoxDecoration(
             color: isSelected
-                ? ColorClass.glowBlue.withValues(alpha: 0.1)
+                ? ColorClass.glowPurple.withValues(alpha: 0.15)
                 : Colors.transparent,
             border: Border(
               left: BorderSide(
-                color: isSelected ? ColorClass.glowBlue : Colors.transparent,
-                width: 4.0,
+                color: isSelected ? ColorClass.glowPurple : Colors.transparent,
+                width: 3,
               ),
             ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: isSelected
-                    ? ColorClass.glowBlue
-                    : ColorClass.textSecondary,
-                size: 24.0,
-              ),
-              const SizedBox(width: 16.0),
-              Expanded(
-                child: TextWidget(
-                  text: title,
-                  textColor: isSelected
-                      ? ColorClass.white
-                      : ColorClass.textSecondary,
-                  fontSize: 16.0,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          child: Icon(
+            isSelected ? filledIcon : outlinedIcon,
+            color: isSelected
+                ? ColorClass.glowPurple
+                : ColorClass.textSecondary,
+            size: iconSize,
           ),
         ),
       );
     });
   }
 
-  Widget _buildBottomControlBar(BuildContext context) {
+  Widget _buildBottomControlBar(
+    BuildContext context,
+    double barHeight,
+    double refSize,
+  ) {
     final recorderController = Get.find<RecorderController>();
+    final primaryButtonSize = refSize * 0.09;
+    final secondaryButtonSize = refSize * 0.065;
+    final buttonSpacing = refSize * 0.04;
+
     return Container(
-      height: 100, // Fixed reasonable height
+      height: barHeight,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.5),
         border: const Border(top: BorderSide(color: Colors.white10)),
@@ -210,9 +264,9 @@ class DesktopMainPage extends StatelessWidget {
             icon: Icons.stop,
             onTap: () => recorderController.stopRecording(),
             isPrimary: false,
-            size: 50.0,
+            size: secondaryButtonSize,
           ),
-          const SizedBox(width: 32),
+          SizedBox(width: buttonSpacing),
           // Play/Pause/Record
           Obx(() {
             final isRecording = recorderController.isRecording.value;
@@ -220,16 +274,16 @@ class DesktopMainPage extends StatelessWidget {
               icon: isRecording ? Icons.pause : Icons.play_arrow,
               onTap: () => recorderController.toggleRecording(),
               isPrimary: true,
-              size: 70.0,
+              size: primaryButtonSize,
             );
           }),
-          const SizedBox(width: 32),
+          SizedBox(width: buttonSpacing),
           // Close / Setup
           _buildCircleButton(
             icon: Icons.close,
             onTap: () {},
             isPrimary: false,
-            size: 50.0,
+            size: secondaryButtonSize,
           ),
         ],
       ),

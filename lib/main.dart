@@ -26,9 +26,9 @@ void main() async {
       await windowManager.ensureInitialized();
 
       WindowOptions windowOptions = const WindowOptions(
-        size: Size(950, 650),
-        minimumSize: Size(950, 650),
-        maximumSize: Size(950, 650),
+        size: Size(1200, 800),
+        minimumSize: Size(1000, 700),
+        maximumSize: Size(1600, 1000),
         center: true,
         title: "Voice Recorder",
         backgroundColor: Colors.transparent,
