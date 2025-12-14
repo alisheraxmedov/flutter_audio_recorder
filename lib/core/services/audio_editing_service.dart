@@ -4,6 +4,7 @@ import 'package:ffmpeg_kit_flutter_audio/ffprobe_kit.dart';
 import 'package:ffmpeg_kit_flutter_audio/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:recorder/features/recorder/models/audio_effect_settings.dart';
 
 class AudioEditingService {
   /// Extract Duration in MS using FFprobe
@@ -244,6 +245,82 @@ class AudioEditingService {
       return success ? outputPath : null;
     } catch (e) {
       debugPrint("Merge error: $e");
+      return null;
+    }
+  }
+
+  /// Get sample rate of audio file using FFprobe
+  Future<int> getSampleRate(String path) async {
+    try {
+      if (!kIsWeb &&
+          (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) {
+        // Parse sample rate from ffmpeg/ffprobe output on desktop
+        final result = await Process.run('ffprobe', [
+          '-v',
+          'error',
+          '-select_streams',
+          'a:0',
+          '-show_entries',
+          'stream=sample_rate',
+          '-of',
+          'default=noprint_wrappers=1:nokey=1',
+          path,
+        ]);
+        final output = result.stdout.toString().trim();
+        return int.tryParse(output) ?? 44100;
+      } else {
+        final session = await FFprobeKit.getMediaInformation(path);
+        final info = session.getMediaInformation();
+        final streams = info?.getStreams();
+        if (streams != null && streams.isNotEmpty) {
+          final sampleRateStr = streams.first.getSampleRate();
+          if (sampleRateStr != null) {
+            return int.tryParse(sampleRateStr) ?? 44100;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error getting sample rate: $e");
+    }
+    return 44100; // Default fallback
+  }
+
+  /// Apply multiple audio effects in a single FFmpeg pass (batch processing)
+  /// Returns path to the processed file or null on failure
+  Future<String?> applyEffects(
+    String inputPath,
+    AudioEffectSettings settings,
+  ) async {
+    if (!settings.hasActiveEffects) {
+      return inputPath; // No effects to apply
+    }
+
+    try {
+      // 1. Get sample rate for pitch calculations
+      final sampleRate = await getSampleRate(inputPath);
+
+      // 2. Build filter string
+      final filterString = settings.buildFilterString(sampleRate);
+      if (filterString.isEmpty) {
+        return inputPath;
+      }
+
+      // 3. Prepare output path
+      final dir = File(inputPath).parent.path;
+      final ext = inputPath.split('.').last;
+      final name = inputPath.split(RegExp(r'[/\\]')).last.split('.').first;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final outputPath = '$dir/${name}_fx_$timestamp.$ext';
+
+      // 4. Build and execute FFmpeg command
+      final command = '-y -i "$inputPath" -af "$filterString" "$outputPath"';
+
+      debugPrint("Applying effects with filter: $filterString");
+
+      final success = await _runFFmpeg(command);
+      return success ? outputPath : null;
+    } catch (e) {
+      debugPrint("Apply effects error: $e");
       return null;
     }
   }

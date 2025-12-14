@@ -44,7 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-File structure docs
+# File structure docs
 FILE_STRUCTURE.md
 
 

@@ -13,6 +13,7 @@ import 'package:recorder/core/constants/app_colors.dart';
 // import 'package:recorder/features/recorder/models/track_data.dart'; // Defined in file for now or imported if separate.
 // Since I created a separate file but also redefined it in the controller file during the previous step (oops), I should actually REMOVE the duplicate definition from the controller and keep the import.
 import 'package:recorder/features/recorder/models/track_data.dart';
+import 'package:recorder/features/recorder/models/audio_effect_settings.dart';
 
 class AudioEditorController extends GetxController {
   final AudioEditingService _editingService = AudioEditingService();
@@ -40,6 +41,14 @@ class AudioEditorController extends GetxController {
   // Customarily linked to active track editing
   RxString exportFileName = "".obs;
   RxString exportPath = "".obs;
+
+  // Audio Effects State
+  final RxDouble speedFactor = 1.0.obs;
+  final RxDouble pitchFactor = 1.0.obs;
+  final RxBool enableNormalize = false.obs;
+  final RxBool enableTrimSilence = false.obs;
+  final RxBool enableNoiseGate = false.obs;
+  final Rx<AudioPreset> currentPreset = AudioPreset.none.obs;
 
   @override
   void onInit() {
@@ -279,6 +288,81 @@ class AudioEditorController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // --- Audio Effects Methods ---
+
+  /// Build AudioEffectSettings from current state
+  AudioEffectSettings get currentEffectSettings => AudioEffectSettings(
+    speed: speedFactor.value,
+    pitch: pitchFactor.value,
+    normalize: enableNormalize.value,
+    trimSilence: enableTrimSilence.value,
+    noiseGate: enableNoiseGate.value,
+    preset: currentPreset.value,
+  );
+
+  /// Apply all selected effects to the active track (batch processing)
+  Future<void> applyEffects() async {
+    if (activeTrack.filePath.isEmpty) {
+      Get.snackbar("Error", "No audio file loaded");
+      return;
+    }
+
+    final settings = currentEffectSettings;
+    if (!settings.hasActiveEffects) {
+      Get.snackbar("Info", "No effects selected");
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      final resultPath = await _editingService.applyEffects(
+        activeTrack.filePath.value,
+        settings,
+      );
+
+      if (resultPath != null && resultPath != activeTrack.filePath.value) {
+        // Reload the processed file
+        loadFile(resultPath);
+        Get.snackbar("Success", "Effects applied successfully");
+        // Reset effects after applying
+        resetEffects();
+      } else if (resultPath == activeTrack.filePath.value) {
+        Get.snackbar("Info", "No changes were made");
+      } else {
+        Get.snackbar("Error", "Failed to apply effects");
+      }
+    } catch (e) {
+      debugPrint("Apply effects error: $e");
+      Get.snackbar("Error", "An error occurred: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Reset all effect settings to defaults
+  void resetEffects() {
+    speedFactor.value = 1.0;
+    pitchFactor.value = 1.0;
+    enableNormalize.value = false;
+    enableTrimSilence.value = false;
+    enableNoiseGate.value = false;
+    currentPreset.value = AudioPreset.none;
+  }
+
+  /// Apply a preset (sets appropriate effect values)
+  void selectPreset(AudioPreset preset) {
+    // Reset other effects when selecting a preset
+    if (preset != AudioPreset.none) {
+      speedFactor.value = 1.0;
+      pitchFactor.value = 1.0;
+      enableNormalize.value = false;
+      enableTrimSilence.value = false;
+      enableNoiseGate.value = false;
+    }
+    currentPreset.value = preset;
   }
 
   // --- UI Helpers & Folder Selection ---

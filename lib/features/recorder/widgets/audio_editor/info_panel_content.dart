@@ -27,43 +27,51 @@ class InfoPanelContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Obx(
-          () => _infoRow(
-            "Format",
-            controller.activeTrack.fileFormat.value,
-            refSize,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Obx(
+            () => _infoRow(
+              "Format",
+              controller.activeTrack.fileFormat.value,
+              refSize,
+            ),
           ),
-        ),
-        Obx(
-          () =>
-              _infoRow("Size", controller.activeTrack.fileSize.value, refSize),
-        ),
-        Obx(
-          () => _infoRow(
-            "Duration",
-            controller.formatTime(controller.activeTrack.totalDurationMs.value),
-            refSize,
+          Obx(
+            () => _infoRow(
+              "Size",
+              controller.activeTrack.fileSize.value,
+              refSize,
+            ),
           ),
-        ),
-        Divider(
-          color: ColorClass.white.withValues(alpha: 0.1),
-          height: refSize * 0.05,
-        ),
+          Obx(
+            () => _infoRow(
+              "Duration",
+              controller.formatTime(
+                controller.activeTrack.totalDurationMs.value,
+              ),
+              refSize,
+            ),
+          ),
+          Divider(
+            color: ColorClass.white.withValues(alpha: 0.1),
+            height: refSize * 0.05,
+          ),
 
-        TextWidget(
-          text: "Selection Range",
-          fontSize: refSize * 0.025,
-          textColor: ColorClass.glowBlue,
-        ),
-        SizedBox(height: refSize * 0.02),
+          TextWidget(
+            text: "Selection Range",
+            fontSize: refSize * 0.025,
+            textColor: ColorClass.glowBlue,
+          ),
+          SizedBox(height: refSize * 0.02),
 
-        _timeInput("Start", startController, refSize),
-        SizedBox(height: refSize * 0.015),
-        _timeInput("End", endController, refSize),
-      ],
+          _timeInput("Start", startController, refSize),
+          SizedBox(height: refSize * 0.015),
+          _timeInput("End", endController, refSize),
+        ],
+      ),
     );
   }
 

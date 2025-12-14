@@ -8,6 +8,7 @@ import 'package:recorder/features/recorder/widgets/audio_editor/editor_side_pane
 import 'package:recorder/features/recorder/widgets/audio_editor/track_slot_widget.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/files_panel_content.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/info_panel_content.dart';
+import 'package:recorder/features/recorder/widgets/audio_editor/effects_panel_content.dart';
 
 class AudioEditorPage extends StatefulWidget {
   final String? filePath;
@@ -190,16 +191,40 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                         ),
                       ),
 
-                      // RIGHT PANEL (Info & Selection)
-                      EditorSidePanel(
+                      // RIGHT PANELS (Info & Effects)
+                      SizedBox(
                         width: size.width * 0.25,
-                        refSize: refSize,
-                        title: "Info",
-                        child: InfoPanelContent(
-                          refSize: refSize,
-                          controller: controller,
-                          startController: _startController,
-                          endController: _endController,
+                        child: Column(
+                          children: [
+                            // Info Panel (top)
+                            Expanded(
+                              flex: 1,
+                              child: EditorSidePanel(
+                                width: double.infinity,
+                                refSize: refSize,
+                                title: "Info",
+                                child: InfoPanelContent(
+                                  refSize: refSize,
+                                  controller: controller,
+                                  startController: _startController,
+                                  endController: _endController,
+                                ),
+                              ),
+                            ),
+                            // Effects Panel (bottom)
+                            Expanded(
+                              flex: 1,
+                              child: EditorSidePanel(
+                                width: double.infinity,
+                                refSize: refSize,
+                                title: "Effects",
+                                child: EffectsPanelContent(
+                                  refSize: refSize,
+                                  controller: controller,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
