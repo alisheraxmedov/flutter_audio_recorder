@@ -7,7 +7,7 @@ import Foundation
 
 import audioplayers_darwin
 import desktop_drop
-import ffmpeg_kit_flutter_audio
+import ffmpeg_kit_flutter_new
 import file_picker
 import flutter_localization
 import path_provider_foundation
