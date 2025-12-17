@@ -61,3 +61,14 @@ lib/features/custom_widgets
 # Environment variables (API keys)
 .env
 !.env.example
+# Firebase
+output/
+firebase-debug.log
+test-debug.log
+.firebase/
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+firebase.json
+

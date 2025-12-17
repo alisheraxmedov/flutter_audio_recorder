@@ -43,7 +43,7 @@ class AiController extends GetxController {
   }
 
   /// Transcribe loaded audio file
-  Future<void> transcribe({String language = 'uz'}) async {
+  Future<void> transcribe({String language = 'en'}) async {
     if (audioPath.isEmpty) {
       errorMessage.value = 'No audio file loaded';
       return;

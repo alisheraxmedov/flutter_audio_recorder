@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:recorder/core/constants/ai_prompts.dart';
 
 /// Analysis modes for AI text processing
 enum AnalysisMode { summarize, simplify, actionItems, format }
@@ -8,9 +9,16 @@ enum AnalysisMode { summarize, simplify, actionItems, format }
 /// Service for AI-powered text analysis using OpenAI GPT-4o-mini
 class AiAnalysisService {
   late final Dio _dio;
-  static const String _chatEndpoint =
+  String get _chatEndpoint =>
+      dotenv.env['OPENAI_API_URL'] ??
       'https://api.openai.com/v1/chat/completions';
-  static const String _model = 'gpt-4o-mini';
+  String get _model => dotenv.env['OPENAI_MODEL'] ?? 'gpt-4o-mini';
+
+  double get _temperature =>
+      double.tryParse(dotenv.env['OPENAI_TEMPERATURE'] ?? '') ?? 0.7;
+
+  int get _maxTokens =>
+      int.tryParse(dotenv.env['OPENAI_MAX_TOKENS'] ?? '') ?? 1000;
 
   AiAnalysisService() {
     _dio = Dio(
@@ -28,30 +36,16 @@ class AiAnalysisService {
   String _getSystemPrompt(AnalysisMode mode) {
     switch (mode) {
       case AnalysisMode.summarize:
-        return '''You are a professional summarizer. 
-Create a concise summary of the provided text in 2-3 sentences.
-Focus on the main points and key information.
-Respond in the same language as the input text.''';
+        return AiPrompts.summarize;
 
       case AnalysisMode.simplify:
-        return '''You are an expert at explaining complex topics simply.
-Rewrite the provided text in simple, easy-to-understand language.
-Explain it like you're talking to a 5-year-old (ELI5).
-Respond in the same language as the input text.''';
+        return AiPrompts.simplify;
 
       case AnalysisMode.actionItems:
-        return '''You are a professional assistant.
-Extract all action items, tasks, and conclusions from the provided text.
-Format them as a numbered list.
-If no clear action items exist, identify key decisions or conclusions.
-Respond in the same language as the input text.''';
+        return AiPrompts.actionItems;
 
       case AnalysisMode.format:
-        return '''You are a Markdown formatting expert.
-Format the provided text into clean, well-structured Markdown.
-Use appropriate headers, lists, and emphasis.
-Preserve all original information while improving readability.
-Respond in the same language as the input text.''';
+        return AiPrompts.formatMarkdown;
     }
   }
 
@@ -77,8 +71,8 @@ Respond in the same language as the input text.''';
             {'role': 'system', 'content': _getSystemPrompt(mode)},
             {'role': 'user', 'content': text},
           ],
-          'temperature': 0.7,
-          'max_tokens': 1000,
+          'temperature': _temperature,
+          'max_tokens': _maxTokens,
         },
         options: Options(
           headers: {
@@ -131,13 +125,7 @@ Respond in the same language as the input text.''';
         data: {
           'model': _model,
           'messages': [
-            {
-              'role': 'system',
-              'content': '''You are a tagging assistant.
-Analyze the text and suggest 2-5 relevant tags.
-Return ONLY the tags as a comma-separated list, nothing else.
-Example: meeting, project, deadline, budget''',
-            },
+            {'role': 'system', 'content': AiPrompts.suggestTags},
             {'role': 'user', 'content': transcription},
           ],
           'temperature': 0.5,
