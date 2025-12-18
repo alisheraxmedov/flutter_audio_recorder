@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,7 +9,8 @@ import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/ai_controller.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 
-/// AI Transcription and Analysis Page - Split Layout Design
+/// AI Transcription and Analysis Page - Responsive Layout Design
+/// Mobile va Desktop uchun bir xil funksiyalar, faqat UI moslashtirilgan
 class AiPage extends StatefulWidget {
   final String audioPath;
 
@@ -20,6 +23,10 @@ class AiPage extends StatefulWidget {
 class _AiPageState extends State<AiPage> {
   late final AiController controller;
   late final AudioPlayerService _audioPlayer;
+
+  // Platform tekshiruvi
+  bool get _isDesktop =>
+      !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
   @override
   void initState() {
@@ -39,41 +46,456 @@ class _AiPageState extends State<AiPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final refSize = size.shortestSide.clamp(400.0, 800.0);
+    final refSize = size.shortestSide.clamp(300.0, 800.0);
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
-      body: Row(
-        children: [
-          // LEFT PANEL - Audio Section
-          Container(
-            width: size.width * 0.35,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  ColorClass.glowPurple.withValues(alpha: 0.15),
-                  ColorClass.darkBackground,
-                ],
-              ),
-              border: Border(
-                right: BorderSide(
-                  color: ColorClass.white.withValues(alpha: 0.1),
-                ),
+      body: SafeArea(
+        child: _isDesktop
+            ? _buildDesktopLayout(size, refSize)
+            : _buildMobileLayout(size, refSize),
+      ),
+    );
+  }
+
+  /// Desktop uchun layout (Row - split screen 35%/65%)
+  Widget _buildDesktopLayout(Size size, double refSize) {
+    return Row(
+      children: [
+        // LEFT PANEL - Audio Section
+        Container(
+          width: size.width * 0.35,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                ColorClass.glowPurple.withValues(alpha: 0.15),
+                ColorClass.darkBackground,
+              ],
+            ),
+            border: Border(
+              right: BorderSide(color: ColorClass.white.withValues(alpha: 0.1)),
+            ),
+          ),
+          child: _buildAudioSection(refSize),
+        ),
+
+        // RIGHT PANEL - Transcription & Analysis
+        Expanded(child: _buildTranscriptionSection(refSize)),
+      ],
+    );
+  }
+
+  /// Mobile uchun layout - barcha Desktop funksiyalari bilan
+  Widget _buildMobileLayout(Size size, double refSize) {
+    return Column(
+      children: [
+        // AppBar
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: refSize * 0.02,
+            vertical: refSize * 0.01,
+          ),
+          decoration: BoxDecoration(
+            color: ColorClass.buttonBg,
+            border: Border(
+              bottom: BorderSide(
+                color: ColorClass.white.withValues(alpha: 0.1),
               ),
             ),
-            child: _buildAudioSection(refSize),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: ColorClass.white,
+                  size: refSize * 0.06,
+                ),
+                onPressed: () => Get.back(),
+              ),
+              Expanded(
+                child: Obx(
+                  () => TextWidget(
+                    text: controller.audioName.value,
+                    textColor: ColorClass.white,
+                    fontSize: refSize * 0.04,
+                    fontWeight: FontWeight.w600,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              // Copy button
+              Obx(() {
+                if (controller.transcribedText.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  icon: Icon(
+                    Icons.copy,
+                    color: ColorClass.textSecondary,
+                    size: refSize * 0.05,
+                  ),
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: controller.transcribedText.value),
+                    );
+                    Get.snackbar('Copied', 'Text copied to clipboard');
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+
+        // Audio Player Section (Compact)
+        _buildMobileAudioPlayer(refSize),
+
+        // Transcription Content
+        Expanded(child: _buildMobileTranscriptionContent(refSize)),
+
+        // AI Analysis Section
+        _buildMobileAnalysisSection(refSize),
+
+        // Export Buttons
+        _buildMobileExportButtons(refSize),
+      ],
+    );
+  }
+
+  /// Mobile uchun compact audio player
+  Widget _buildMobileAudioPlayer(double refSize) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: refSize * 0.04,
+        vertical: refSize * 0.02,
+      ),
+      padding: EdgeInsets.all(refSize * 0.03),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            ColorClass.glowBlue.withValues(alpha: 0.15),
+            ColorClass.glowPurple.withValues(alpha: 0.15),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(refSize * 0.03),
+        border: Border.all(color: ColorClass.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          // Audio Icon
+          Container(
+            width: refSize * 0.12,
+            height: refSize * 0.12,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  ColorClass.glowBlue.withValues(alpha: 0.5),
+                  ColorClass.glowPurple.withValues(alpha: 0.5),
+                ],
+              ),
+            ),
+            child: Icon(
+              Icons.graphic_eq,
+              color: ColorClass.white,
+              size: refSize * 0.06,
+            ),
           ),
 
-          // RIGHT PANEL - Transcription & Analysis
-          Expanded(child: _buildTranscriptionSection(refSize)),
+          SizedBox(width: refSize * 0.03),
+
+          // Play Button
+          _buildPlayButton(refSize * 0.9),
+
+          SizedBox(width: refSize * 0.03),
+
+          // Transcribe Button
+          Expanded(
+            child: Obx(() {
+              final hasTranscription = controller.hasTranscription.value;
+              final isTranscribing = controller.isTranscribing.value;
+
+              return ElevatedButton.icon(
+                onPressed: isTranscribing
+                    ? null
+                    : () => controller.transcribe(),
+                icon: isTranscribing
+                    ? SizedBox(
+                        width: refSize * 0.04,
+                        height: refSize * 0.04,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: ColorClass.white,
+                        ),
+                      )
+                    : Icon(
+                        hasTranscription ? Icons.refresh : Icons.auto_awesome,
+                        size: refSize * 0.04,
+                      ),
+                label: TextWidget(
+                  text: isTranscribing
+                      ? 'Processing...'
+                      : hasTranscription
+                      ? 'Re-transcribe'
+                      : 'Transcribe',
+                  textColor: ColorClass.white,
+                  fontSize: refSize * 0.032,
+                  fontWeight: FontWeight.w600,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorClass.glowBlue,
+                  foregroundColor: ColorClass.white,
+                  padding: EdgeInsets.symmetric(vertical: refSize * 0.02),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(refSize * 0.02),
+                  ),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );
   }
 
-  /// Left panel: Audio player and controls
+  /// Mobile transcription content
+  Widget _buildMobileTranscriptionContent(double refSize) {
+    return Obx(() {
+      // Error message
+      if (controller.errorMessage.isNotEmpty) {
+        return Container(
+          margin: EdgeInsets.all(refSize * 0.04),
+          padding: EdgeInsets.all(refSize * 0.03),
+          decoration: BoxDecoration(
+            color: Colors.red.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(refSize * 0.02),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+          ),
+          child: TextWidget(
+            text: controller.errorMessage.value,
+            textColor: Colors.redAccent,
+            fontSize: refSize * 0.035,
+          ),
+        );
+      }
+
+      // Empty state
+      if (controller.transcribedText.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.mic_none,
+                size: refSize * 0.15,
+                color: ColorClass.textSecondary.withValues(alpha: 0.3),
+              ),
+              SizedBox(height: refSize * 0.03),
+              TextWidget(
+                text: 'Tap "Transcribe" to start',
+                textColor: ColorClass.textSecondary,
+                fontSize: refSize * 0.04,
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Transcription text
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: refSize * 0.04),
+        padding: EdgeInsets.all(refSize * 0.03),
+        decoration: BoxDecoration(
+          color: ColorClass.buttonBg.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(refSize * 0.02),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SelectableText(
+                controller.transcribedText.value,
+                style: TextStyle(
+                  color: ColorClass.white,
+                  fontSize: refSize * 0.038,
+                  height: 1.6,
+                ),
+              ),
+              // Tags
+              if (controller.suggestedTags.isNotEmpty) ...[
+                SizedBox(height: refSize * 0.03),
+                Wrap(
+                  spacing: refSize * 0.015,
+                  runSpacing: refSize * 0.015,
+                  children: controller.suggestedTags
+                      .map(
+                        (tag) => Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: refSize * 0.02,
+                            vertical: refSize * 0.01,
+                          ),
+                          decoration: BoxDecoration(
+                            color: ColorClass.glowPurple.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(refSize * 0.01),
+                          ),
+                          child: TextWidget(
+                            text: '#$tag',
+                            textColor: ColorClass.glowPurple,
+                            fontSize: refSize * 0.028,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  /// Mobile AI Analysis Section
+  Widget _buildMobileAnalysisSection(double refSize) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: refSize * 0.04,
+        vertical: refSize * 0.02,
+      ),
+      decoration: BoxDecoration(
+        color: ColorClass.buttonBg,
+        borderRadius: BorderRadius.circular(refSize * 0.02),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: EdgeInsets.all(refSize * 0.025),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  color: ColorClass.glowPurple,
+                  size: refSize * 0.045,
+                ),
+                SizedBox(width: refSize * 0.015),
+                TextWidget(
+                  text: 'AI Analysis',
+                  textColor: ColorClass.white,
+                  fontSize: refSize * 0.04,
+                  fontWeight: FontWeight.w600,
+                ),
+              ],
+            ),
+          ),
+
+          // Mode Buttons
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: refSize * 0.02),
+            child: Row(
+              children: AnalysisMode.values
+                  .map(
+                    (mode) => Padding(
+                      padding: EdgeInsets.only(right: refSize * 0.015),
+                      child: _buildAnalysisModeButton(mode, refSize),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+
+          // Analysis Result
+          Obx(() {
+            if (controller.isAnalyzing.value) {
+              return Padding(
+                padding: EdgeInsets.all(refSize * 0.04),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: ColorClass.glowPurple,
+                    strokeWidth: 2,
+                  ),
+                ),
+              );
+            }
+            if (controller.analysisResult.isEmpty) {
+              return SizedBox(height: refSize * 0.02);
+            }
+            return Container(
+              width: double.infinity,
+              margin: EdgeInsets.all(refSize * 0.02),
+              padding: EdgeInsets.all(refSize * 0.02),
+              constraints: BoxConstraints(maxHeight: refSize * 0.3),
+              decoration: BoxDecoration(
+                color: ColorClass.glowPurple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(refSize * 0.015),
+                border: Border.all(
+                  color: ColorClass.glowPurple.withValues(alpha: 0.2),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  controller.analysisResult.value,
+                  style: TextStyle(
+                    color: ColorClass.white,
+                    fontSize: refSize * 0.032,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  /// Mobile export buttons
+  Widget _buildMobileExportButtons(double refSize) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: refSize * 0.04,
+        vertical: refSize * 0.02,
+      ),
+      decoration: BoxDecoration(
+        color: ColorClass.buttonBg,
+        border: Border(
+          top: BorderSide(color: ColorClass.white.withValues(alpha: 0.1)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildExportButton(
+              'Export TXT',
+              Icons.description_outlined,
+              () async {
+                final path = await controller.exportAsText();
+                if (path != null) {
+                  Get.snackbar('Success', 'Exported to: $path');
+                }
+              },
+              refSize,
+            ),
+          ),
+          SizedBox(width: refSize * 0.03),
+          Expanded(
+            child: _buildExportButton('Export MD', Icons.code, () async {
+              final path = await controller.exportAsMarkdown();
+              if (path != null) {
+                Get.snackbar('Success', 'Exported to: $path');
+              }
+            }, refSize),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Desktop Audio Section
   Widget _buildAudioSection(double refSize) {
     return Column(
       children: [
@@ -275,14 +697,16 @@ class _AiPageState extends State<AiPage> {
       return GestureDetector(
         onTap: enabled ? onTap : null,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: refSize * 0.015),
+          padding: EdgeInsets.symmetric(vertical: refSize * 0.02),
           decoration: BoxDecoration(
             color: enabled
-                ? ColorClass.buttonBg
+                ? ColorClass.glowBlue.withValues(alpha: 0.2)
                 : ColorClass.buttonBg.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(refSize * 0.01),
+            borderRadius: BorderRadius.circular(refSize * 0.015),
             border: Border.all(
-              color: ColorClass.white.withValues(alpha: enabled ? 0.1 : 0.05),
+              color: enabled
+                  ? ColorClass.glowBlue.withValues(alpha: 0.5)
+                  : ColorClass.white.withValues(alpha: 0.05),
             ),
           ),
           child: Row(
@@ -291,15 +715,16 @@ class _AiPageState extends State<AiPage> {
               Icon(
                 icon,
                 color: enabled ? ColorClass.white : ColorClass.textSecondary,
-                size: refSize * 0.025,
+                size: refSize * 0.035,
               ),
-              SizedBox(width: refSize * 0.01),
+              SizedBox(width: refSize * 0.015),
               TextWidget(
                 text: label,
                 textColor: enabled
                     ? ColorClass.white
                     : ColorClass.textSecondary,
-                fontSize: refSize * 0.02,
+                fontSize: refSize * 0.028,
+                fontWeight: FontWeight.w500,
               ),
             ],
           ),
@@ -308,7 +733,7 @@ class _AiPageState extends State<AiPage> {
     });
   }
 
-  /// Right panel: Transcription text and AI analysis
+  /// Transcription Section (Desktop)
   Widget _buildTranscriptionSection(double refSize) {
     return Column(
       children: [
@@ -587,8 +1012,8 @@ class _AiPageState extends State<AiPage> {
             : null,
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: refSize * 0.02,
-            vertical: refSize * 0.012,
+            horizontal: refSize * 0.025,
+            vertical: refSize * 0.015,
           ),
           decoration: BoxDecoration(
             color: isSelected
@@ -596,7 +1021,7 @@ class _AiPageState extends State<AiPage> {
                 : hasText
                 ? ColorClass.darkBackground
                 : ColorClass.darkBackground.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(refSize * 0.01),
+            borderRadius: BorderRadius.circular(refSize * 0.012),
             border: Border.all(
               color: isSelected
                   ? ColorClass.glowPurple
@@ -615,9 +1040,9 @@ class _AiPageState extends State<AiPage> {
                     : hasText
                     ? ColorClass.textSecondary
                     : ColorClass.textSecondary.withValues(alpha: 0.3),
-                size: refSize * 0.025,
+                size: refSize * 0.03,
               ),
-              SizedBox(width: refSize * 0.008),
+              SizedBox(width: refSize * 0.01),
               TextWidget(
                 text: labels[mode]!,
                 textColor: isSelected
@@ -625,7 +1050,7 @@ class _AiPageState extends State<AiPage> {
                     : hasText
                     ? ColorClass.textSecondary
                     : ColorClass.textSecondary.withValues(alpha: 0.3),
-                fontSize: refSize * 0.018,
+                fontSize: refSize * 0.022,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ],
