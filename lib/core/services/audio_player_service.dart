@@ -67,6 +67,31 @@ class AudioPlayerService extends GetxController {
     }
   }
 
+  /// Prepare audio without playing (to get duration)
+  Future<void> prepare(String path) async {
+    try {
+      if (currentPath.value != path) {
+        await _player.setSourceDeviceFile(path);
+        currentPath.value = path;
+        _isCompleted = false;
+
+        // Explicitly fetch duration after setting source
+        final dur = await _player.getDuration();
+        if (dur != null) {
+          duration.value = dur;
+        }
+      } else {
+        // Even if path is same, re-fetch duration to be safe
+        final dur = await _player.getDuration();
+        if (dur != null) {
+          duration.value = dur;
+        }
+      }
+    } catch (e) {
+      print('Error preparing audio: $e');
+    }
+  }
+
   /// Pause playback
   Future<void> pause() async {
     await _player.pause();
