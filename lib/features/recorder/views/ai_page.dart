@@ -7,10 +7,10 @@ import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/core/services/ai_analysis_service.dart';
 import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/ai_controller.dart';
+import 'package:recorder/features/recorder/widgets/magic_widgets/magic_button.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
+import 'package:recorder/features/recorder/widgets/circle_button.dart';
 
-/// AI Transcription and Analysis Page - Responsive Layout Design
-/// Mobile va Desktop uchun bir xil funksiyalar, faqat UI moslashtirilgan
 class AiPage extends StatefulWidget {
   final String audioPath;
 
@@ -20,11 +20,13 @@ class AiPage extends StatefulWidget {
   State<AiPage> createState() => _AiPageState();
 }
 
-class _AiPageState extends State<AiPage> {
+class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
   late final AiController controller;
   late final AudioPlayerService _audioPlayer;
 
-  // Platform tekshiruvi
+  late final AnimationController _glowController;
+  late final Animation<double> _glowAnimation;
+
   bool get _isDesktop =>
       !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
@@ -34,11 +36,23 @@ class _AiPageState extends State<AiPage> {
     controller = Get.put(AiController());
     _audioPlayer = Get.find<AudioPlayerService>();
     controller.loadAudio(widget.audioPath);
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _audioPlayer.prepare(widget.audioPath); // Preload duration
+
+    _glowAnimation = Tween<double>(begin: 0.2, end: 0.6).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _audioPlayer.stop();
+    _glowController.dispose();
     Get.delete<AiController>();
     super.dispose();
   }
@@ -50,306 +64,573 @@ class _AiPageState extends State<AiPage> {
 
     return Scaffold(
       backgroundColor: ColorClass.darkBackground,
-      body: SafeArea(
-        child: _isDesktop
-            ? _buildDesktopLayout(size, refSize)
-            : _buildMobileLayout(size, refSize),
-      ),
-    );
-  }
-
-  /// Desktop uchun layout (Row - split screen 35%/65%)
-  Widget _buildDesktopLayout(Size size, double refSize) {
-    return Row(
-      children: [
-        // LEFT PANEL - Audio Section
-        Container(
-          width: size.width * 0.35,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                ColorClass.glowPurple.withValues(alpha: 0.15),
-                ColorClass.darkBackground,
-              ],
-            ),
-            border: Border(
-              right: BorderSide(color: ColorClass.white.withValues(alpha: 0.1)),
-            ),
-          ),
-          child: _buildAudioSection(refSize),
-        ),
-
-        // RIGHT PANEL - Transcription & Analysis
-        Expanded(child: _buildTranscriptionSection(refSize)),
-      ],
-    );
-  }
-
-  /// Mobile uchun layout - barcha Desktop funksiyalari bilan
-  Widget _buildMobileLayout(Size size, double refSize) {
-    return Column(
-      children: [
-        // AppBar
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: refSize * 0.02,
-            vertical: refSize * 0.01,
-          ),
-          decoration: BoxDecoration(
-            color: ColorClass.buttonBg,
-            border: Border(
-              bottom: BorderSide(
-                color: ColorClass.white.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: ColorClass.white,
-                  size: refSize * 0.06,
-                ),
-                onPressed: () => Get.back(),
-              ),
-              Expanded(
-                child: Obx(
-                  () => TextWidget(
-                    text: controller.audioName.value,
-                    textColor: ColorClass.white,
-                    fontSize: refSize * 0.04,
-                    fontWeight: FontWeight.w600,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              // Copy button
-              Obx(() {
-                if (controller.transcribedText.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return IconButton(
-                  icon: Icon(
-                    Icons.copy,
-                    color: ColorClass.textSecondary,
-                    size: refSize * 0.05,
-                  ),
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(text: controller.transcribedText.value),
-                    );
-                    Get.snackbar('Copied', 'Text copied to clipboard');
-                  },
-                );
-              }),
-            ],
-          ),
-        ),
-
-        // Audio Player Section (Compact)
-        _buildMobileAudioPlayer(refSize),
-
-        // Transcription Content
-        Expanded(child: _buildMobileTranscriptionContent(refSize)),
-
-        // AI Analysis Section
-        _buildMobileAnalysisSection(refSize),
-
-        // Export Buttons
-        _buildMobileExportButtons(refSize),
-      ],
-    );
-  }
-
-  /// Mobile uchun compact audio player
-  Widget _buildMobileAudioPlayer(double refSize) {
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: refSize * 0.04,
-        vertical: refSize * 0.02,
-      ),
-      padding: EdgeInsets.all(refSize * 0.03),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            ColorClass.glowBlue.withValues(alpha: 0.15),
-            ColorClass.glowPurple.withValues(alpha: 0.15),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(refSize * 0.03),
-        border: Border.all(color: ColorClass.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
+      // Stack for background ambient effects
+      body: Stack(
         children: [
-          // Audio Icon
-          Container(
-            width: refSize * 0.12,
-            height: refSize * 0.12,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  ColorClass.glowBlue.withValues(alpha: 0.5),
-                  ColorClass.glowPurple.withValues(alpha: 0.5),
-                ],
-              ),
-            ),
-            child: Icon(
-              Icons.graphic_eq,
-              color: ColorClass.white,
-              size: refSize * 0.06,
-            ),
+          // Ambient Background Glow
+          Positioned(
+            top: -100,
+            right: -100,
+            child: _buildAmbientOrb(refSize, ColorClass.glowPurple),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -100,
+            child: _buildAmbientOrb(refSize, ColorClass.glowBlue),
           ),
 
-          SizedBox(width: refSize * 0.03),
-
-          // Play Button
-          _buildPlayButton(refSize * 0.9),
-
-          SizedBox(width: refSize * 0.03),
-
-          // Transcribe Button
-          Expanded(
-            child: Obx(() {
-              final hasTranscription = controller.hasTranscription.value;
-              final isTranscribing = controller.isTranscribing.value;
-
-              return ElevatedButton.icon(
-                onPressed: isTranscribing
-                    ? null
-                    : () => controller.transcribe(),
-                icon: isTranscribing
-                    ? SizedBox(
-                        width: refSize * 0.04,
-                        height: refSize * 0.04,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: ColorClass.white,
-                        ),
-                      )
-                    : Icon(
-                        hasTranscription ? Icons.refresh : Icons.auto_awesome,
-                        size: refSize * 0.04,
-                      ),
-                label: TextWidget(
-                  text: isTranscribing
-                      ? 'Processing...'
-                      : hasTranscription
-                      ? 'Re-transcribe'
-                      : 'Transcribe',
-                  textColor: ColorClass.white,
-                  fontSize: refSize * 0.032,
-                  fontWeight: FontWeight.w600,
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorClass.glowBlue,
-                  foregroundColor: ColorClass.white,
-                  padding: EdgeInsets.symmetric(vertical: refSize * 0.02),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(refSize * 0.02),
-                  ),
-                ),
-              );
-            }),
+          // Main Glassmorphic Content
+          SafeArea(
+            child: _isDesktop
+                ? _buildMagicDesktopLayout(size, refSize)
+                : _buildMagicMobileLayout(size, refSize),
           ),
         ],
       ),
     );
   }
 
-  /// Mobile transcription content
-  Widget _buildMobileTranscriptionContent(double refSize) {
-    return Obx(() {
-      // Error message
-      if (controller.errorMessage.isNotEmpty) {
-        return Container(
-          margin: EdgeInsets.all(refSize * 0.04),
+  Widget _buildAmbientOrb(double refSize, Color color) {
+    return Container(
+      width: refSize * 1.5,
+      height: refSize * 1.5,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withValues(alpha: 0.15), ColorClass.transparent],
+        ),
+      ),
+    );
+  }
+
+  /// DESKTOP LAYOUT - High Tech Dashboard Style
+  Widget _buildMagicDesktopLayout(Size size, double refSize) {
+    return Row(
+      children: [
+        Container(
+          width: size.width * 0.28,
+          margin: EdgeInsets.all(refSize * 0.02),
           padding: EdgeInsets.all(refSize * 0.03),
-          decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(refSize * 0.02),
-            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+          decoration: _magicDecoration(refSize),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleButton(
+                icon: Icons.arrow_back,
+                onTap: () => Get.back(),
+                size: refSize * 0.08,
+                bgColor: ColorClass.white.withValues(alpha: 0.1),
+                iconColor: ColorClass.white,
+                iconSize: refSize * 0.04,
+              ),
+              SizedBox(height: refSize * 0.01),
+              Obx(
+                () => TextWidget(
+                  text: controller.audioName.value,
+                  textColor: ColorClass.white,
+                  fontSize: refSize * 0.022,
+                  fontWeight: FontWeight.w600,
+                  maxLines: 2,
+                ),
+              ),
+
+              const Spacer(),
+
+              // Magic Orb Visualization
+              Center(child: _buildMagicOrbWrapper(refSize * 0.15)),
+
+              const Spacer(),
+
+              // Compact Player Controls
+              _buildCompactPlayer(refSize),
+
+              SizedBox(height: refSize * 0.03),
+              const Divider(color: ColorClass.borderLight),
+              SizedBox(height: refSize * 0.03),
+
+              // Quick Analysis Buttons
+              _buildAnalysisButtonsGrid(refSize),
+            ],
           ),
-          child: TextWidget(
-            text: controller.errorMessage.value,
-            textColor: Colors.redAccent,
-            fontSize: refSize * 0.035,
+        ),
+
+        // RIGHT CONTENT - Transcription Board (75%)
+        Expanded(
+          child: Container(
+            margin: EdgeInsets.only(
+              top: refSize * 0.02,
+              bottom: refSize * 0.02,
+              right: refSize * 0.02,
+            ),
+            decoration: _magicDecoration(refSize),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                // Header
+                _buildTranscriptionHeader(refSize),
+
+                // Main Content
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildTranscriptionContent(refSize)),
+                      // Optional Right Sidebar for Analysis (if exists)
+                      Obx(() {
+                        if (controller.analysisResult.isEmpty) return const SizedBox();
+                        return Container(
+                          width: size.width * 0.25,
+                          decoration: BoxDecoration(
+                            border: const Border(
+                              left: BorderSide(color: ColorClass.borderLight),
+                            ),
+                            color: ColorClass.black.withValues(alpha: 0.2),
+                          ),
+                          child: _buildAnalysisResultPanel(refSize),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// MOBILE LAYOUT - Modern Sheet Style
+  Widget _buildMagicMobileLayout(Size size, double refSize) {
+    return Column(
+      children: [
+        // Header
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: refSize * 0.04,
+            vertical: refSize * 0.02,
+          ),
+          child: Row(
+            children: [
+              CircleButton(
+                icon: Icons.arrow_back,
+                onTap: () => Get.back(),
+                size: refSize * 0.08,
+                bgColor: ColorClass.white.withValues(alpha: 0.1),
+                iconColor: ColorClass.white,
+                iconSize: refSize * 0.04,
+              ),
+              SizedBox(width: refSize * 0.03),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextWidget(
+                      text: "AI STUDIO",
+                      textColor: ColorClass.glowPurple,
+                      fontSize: refSize * 0.03,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    Obx(
+                      () => TextWidget(
+                        text: controller.audioName.value,
+                        textColor: ColorClass.white,
+                        fontSize: refSize * 0.035,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildMagicOrbWrapper(refSize * 0.12),
+            ],
+          ),
+        ),
+
+        // Compact Player Bar (Very minimalist)
+        Container(
+          margin: EdgeInsets.symmetric(horizontal: refSize * 0.04),
+          padding: EdgeInsets.symmetric(
+            vertical: refSize * 0.02,
+            horizontal: refSize * 0.04,
+          ),
+          decoration: BoxDecoration(
+            color: ColorClass.buttonBg.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(refSize * 0.1),
+            border: Border.all(color: ColorClass.borderLight),
+          ),
+          child: _buildCompactPlayer(refSize),
+        ),
+
+        SizedBox(height: refSize * 0.02),
+
+        // Main Transcription Area (Expanded)
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(horizontal: refSize * 0.02),
+            decoration: _magicDecoration(refSize),
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  const TabBar(
+                    dividerColor: ColorClass.transparent,
+                    indicatorColor: ColorClass.glowBlue,
+                    labelColor: ColorClass.glowBlue,
+                    unselectedLabelColor: ColorClass.textSecondary,
+                    tabs: [
+                      Tab(text: "TRANSCRIPT"),
+                      Tab(text: "AI INSIGHTS"),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildTranscriptionContent(refSize),
+                        _buildMobileAnalysisTab(refSize),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Bottom Action Bar
+        _buildMobileBottomBar(refSize),
+      ],
+    );
+  }
+
+  // --- COMPONENTS ---
+
+  BoxDecoration _magicDecoration(double refSize) {
+    return BoxDecoration(
+      color: ColorClass.buttonBg.withValues(alpha: 0.6),
+      borderRadius: BorderRadius.circular(refSize * 0.025),
+      border: Border.all(color: ColorClass.white.withValues(alpha: 0.05)),
+      boxShadow: [
+        BoxShadow(
+          color: ColorClass.black.withValues(alpha: 0.2),
+          blurRadius: 10,
+          spreadRadius: 2,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMagicOrbWrapper(double size) {
+    return AnimatedBuilder(
+      animation: _glowController,
+      builder: (context, child) {
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [ColorClass.glowPurple, ColorClass.glowBlue],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: ColorClass.glowPurple.withValues(
+                  alpha: _glowAnimation.value,
+                ),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+              BoxShadow(
+                color: ColorClass.glowBlue.withValues(
+                  alpha: _glowAnimation.value,
+                ),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              Icons.auto_awesome,
+              color: ColorClass.white,
+              size: size * 0.5,
+            ),
           ),
         );
-      }
+      },
+    );
+  }
 
-      // Empty state
-      if (controller.transcribedText.isEmpty) {
+  Widget _buildCompactPlayer(double refSize) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: refSize * 0.02),
+      child: Row(
+        children: [
+          // Play/Pause Button
+          Obx(() {
+            return CircleButton(
+              icon: _audioPlayer.isPlaying.value
+                  ? Icons.pause_circle_filled
+                  : Icons.play_circle_fill,
+              onTap: () {
+                if (_audioPlayer.isPlaying.value) {
+                  _audioPlayer.pause();
+                } else {
+                  _audioPlayer.play(widget.audioPath);
+                }
+              },
+              size: refSize * 0.09,
+              bgColor: ColorClass.transparent,
+              iconColor: ColorClass.white,
+              iconSize: refSize * 0.05,
+            );
+          }),
+
+          SizedBox(width: refSize * 0.03),
+
+          // Slider & Time
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Progress Bar
+                Obx(() {
+                  final position = _audioPlayer.position.value;
+                  final duration = _audioPlayer.duration.value;
+                  final progress = duration.inMilliseconds > 0
+                      ? position.inMilliseconds / duration.inMilliseconds
+                      : 0.0;
+                  return LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    backgroundColor: ColorClass.white.withValues(alpha: 0.1),
+                    color: ColorClass.glowBlue,
+                    borderRadius: BorderRadius.circular(2),
+                    minHeight: refSize * 0.01,
+                  );
+                }),
+                SizedBox(height: refSize * 0.01),
+                // Time Text
+                Obx(() {
+                  final position = _audioPlayer.position.value;
+                  final duration = _audioPlayer.duration.value;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextWidget(
+                        text: _formatDuration(position),
+                        textColor: ColorClass.white,
+                        fontSize: refSize * 0.02,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      TextWidget(
+                        text: _formatDuration(duration),
+                        textColor: ColorClass.textSecondary,
+                        fontSize: refSize * 0.02,
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranscriptionHeader(double refSize) {
+    return Container(
+      padding: EdgeInsets.all(refSize * 0.03),
+      decoration: const BoxDecoration(
+        color: ColorClass.transparent,
+        border: Border(bottom: BorderSide(color: ColorClass.borderLight)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.notes, color: ColorClass.glowBlue, size: refSize * 0.04),
+          SizedBox(width: refSize * 0.02),
+          TextWidget(
+            text: "TRANSCRIPT",
+            textColor: ColorClass.white,
+            fontWeight: FontWeight.bold,
+            fontSize: refSize * 0.025,
+          ),
+          const Spacer(),
+          _buildActionButton(Icons.copy, "Copy", () => _copyText(), refSize),
+          SizedBox(width: refSize * 0.02),
+          _buildActionButton(
+            Icons.download,
+            "Export",
+            () => _showExportOptions(refSize),
+            refSize,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTranscriptionContent(double refSize) {
+    return Obx(() {
+      if (controller.isTranscribing.value) {
         return Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.mic_none,
-                size: refSize * 0.15,
-                color: ColorClass.textSecondary.withValues(alpha: 0.3),
-              ),
-              SizedBox(height: refSize * 0.03),
+              const CircularProgressIndicator(color: ColorClass.glowPurple),
+              SizedBox(height: refSize * 0.04),
               TextWidget(
-                text: 'Tap "Transcribe" to start',
+                text: "AI is listening...",
                 textColor: ColorClass.textSecondary,
-                fontSize: refSize * 0.04,
+                fontSize: refSize * 0.03,
               ),
             ],
           ),
         );
       }
 
-      // Transcription text
+      if (controller.transcribedText.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.graphic_eq,
+                size: refSize * 0.1,
+                color: ColorClass.white.withValues(alpha: 0.1),
+              ),
+              SizedBox(height: refSize * 0.02),
+              TextWidget(
+                text: "Ready to Transcribe",
+                textColor: ColorClass.textSecondary,
+                fontSize: refSize * 0.03,
+              ),
+              SizedBox(height: refSize * 0.04),
+              MagicButton(
+                label: "START TRANSCRIPTION",
+                onPressed: () => controller.transcribe(),
+                padding: EdgeInsets.symmetric(
+                  vertical: refSize * 0.015,
+                  horizontal: refSize * 0.025,
+                ),
+                width: refSize * 0.5,
+                height: refSize * 0.07,
+                fontSize: refSize * 0.02,
+              ),
+            ],
+          ),
+        );
+      }
+
+      return ListView(
+        padding: EdgeInsets.all(refSize * 0.04),
+        children: [
+          SelectableText(
+            controller.transcribedText.value,
+            style: TextStyle(
+              color: ColorClass.white.withValues(alpha: 0.9),
+              fontSize: refSize * 0.035,
+              height: 1.8,
+              fontFamily: 'Inter',
+            ),
+          ),
+          SizedBox(height: refSize * 0.04),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.suggestedTags
+                .map(
+                  (tag) => Chip(
+                    label: TextWidget(
+                      text: "#$tag",
+                      textColor: ColorClass.glowPurple,
+                      fontSize: refSize * 0.02,
+                    ),
+                    backgroundColor: ColorClass.glowPurple.withValues(
+                      alpha: 0.2,
+                    ),
+                    labelStyle: const TextStyle(color: ColorClass.glowPurple),
+                    side: BorderSide.none,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      );
+    });
+  }
+
+  // ================================================================================
+
+  Widget _buildMobileAnalysisTab(double refSize) {
+    return Padding(
+      padding: EdgeInsets.all(refSize * 0.03),
+      child: Column(
+        children: [
+          _buildAnalysisButtonsGrid(refSize),
+          SizedBox(height: refSize * 0.04),
+          Expanded(child: _buildAnalysisResultPanel(refSize)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalysisResultPanel(double refSize) {
+    return Obx(() {
+      if (controller.isAnalyzing.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: ColorClass.glowBlue),
+        );
+      }
+      if (controller.analysisResult.isEmpty) {
+        return Center(
+          child: TextWidget(
+            text: "Select a magic tool to analyze",
+            textColor: ColorClass.textSecondary.withValues(alpha: 0.5),
+            fontSize: refSize * 0.03,
+          ),
+        );
+      }
       return Container(
-        margin: EdgeInsets.symmetric(horizontal: refSize * 0.04),
         padding: EdgeInsets.all(refSize * 0.03),
         decoration: BoxDecoration(
-          color: ColorClass.buttonBg.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(refSize * 0.02),
+          color: ColorClass.glowPurple.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: ColorClass.glowPurple.withValues(alpha: 0.2),
+          ),
         ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb,
+                    color: ColorClass.glowBlue,
+                    size: refSize * 0.04,
+                  ),
+                  const SizedBox(width: 8),
+                  TextWidget(
+                    text: "INSIGHTS",
+                    textColor: ColorClass.glowBlue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: refSize * 0.03,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               SelectableText(
-                controller.transcribedText.value,
+                controller.analysisResult.value,
                 style: TextStyle(
                   color: ColorClass.white,
-                  fontSize: refSize * 0.038,
-                  height: 1.6,
+                  fontSize: refSize * 0.032,
+                  height: 1.5,
                 ),
               ),
-              // Tags
-              if (controller.suggestedTags.isNotEmpty) ...[
-                SizedBox(height: refSize * 0.03),
-                Wrap(
-                  spacing: refSize * 0.015,
-                  runSpacing: refSize * 0.015,
-                  children: controller.suggestedTags
-                      .map(
-                        (tag) => Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: refSize * 0.02,
-                            vertical: refSize * 0.01,
-                          ),
-                          decoration: BoxDecoration(
-                            color: ColorClass.glowPurple.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(refSize * 0.01),
-                          ),
-                          child: TextWidget(
-                            text: '#$tag',
-                            textColor: ColorClass.glowPurple,
-                            fontSize: refSize * 0.028,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
             ],
           ),
         ),
@@ -357,706 +638,146 @@ class _AiPageState extends State<AiPage> {
     });
   }
 
-  /// Mobile AI Analysis Section
-  Widget _buildMobileAnalysisSection(double refSize) {
-    return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: refSize * 0.04,
-        vertical: refSize * 0.02,
-      ),
-      decoration: BoxDecoration(
-        color: ColorClass.buttonBg,
-        borderRadius: BorderRadius.circular(refSize * 0.02),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: EdgeInsets.all(refSize * 0.025),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome,
-                  color: ColorClass.glowPurple,
-                  size: refSize * 0.045,
-                ),
-                SizedBox(width: refSize * 0.015),
-                TextWidget(
-                  text: 'AI Analysis',
-                  textColor: ColorClass.white,
-                  fontSize: refSize * 0.04,
-                  fontWeight: FontWeight.w600,
-                ),
-              ],
-            ),
-          ),
-
-          // Mode Buttons
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: refSize * 0.02),
-            child: Row(
-              children: AnalysisMode.values
-                  .map(
-                    (mode) => Padding(
-                      padding: EdgeInsets.only(right: refSize * 0.015),
-                      child: _buildAnalysisModeButton(mode, refSize),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-
-          // Analysis Result
-          Obx(() {
-            if (controller.isAnalyzing.value) {
-              return Padding(
-                padding: EdgeInsets.all(refSize * 0.04),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: ColorClass.glowPurple,
-                    strokeWidth: 2,
-                  ),
-                ),
-              );
-            }
-            if (controller.analysisResult.isEmpty) {
-              return SizedBox(height: refSize * 0.02);
-            }
-            return Container(
-              width: double.infinity,
-              margin: EdgeInsets.all(refSize * 0.02),
-              padding: EdgeInsets.all(refSize * 0.02),
-              constraints: BoxConstraints(maxHeight: refSize * 0.3),
-              decoration: BoxDecoration(
-                color: ColorClass.glowPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(refSize * 0.015),
-                border: Border.all(
-                  color: ColorClass.glowPurple.withValues(alpha: 0.2),
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: SelectableText(
-                  controller.analysisResult.value,
-                  style: TextStyle(
-                    color: ColorClass.white,
-                    fontSize: refSize * 0.032,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// Mobile export buttons
-  Widget _buildMobileExportButtons(double refSize) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: refSize * 0.04,
-        vertical: refSize * 0.02,
-      ),
-      decoration: BoxDecoration(
-        color: ColorClass.buttonBg,
-        border: Border(
-          top: BorderSide(color: ColorClass.white.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildExportButton(
-              'Export TXT',
-              Icons.description_outlined,
-              () async {
-                final path = await controller.exportAsText();
-                if (path != null) {
-                  Get.snackbar('Success', 'Exported to: $path');
-                }
-              },
-              refSize,
-            ),
-          ),
-          SizedBox(width: refSize * 0.03),
-          Expanded(
-            child: _buildExportButton('Export MD', Icons.code, () async {
-              final path = await controller.exportAsMarkdown();
-              if (path != null) {
-                Get.snackbar('Success', 'Exported to: $path');
-              }
-            }, refSize),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Desktop Audio Section
-  Widget _buildAudioSection(double refSize) {
-    return Column(
-      children: [
-        // Header with back button
-        Container(
+  Widget _buildAnalysisButtonsGrid(double refSize) {
+    return Wrap(
+      spacing: refSize * 0.015,
+      runSpacing: refSize * 0.015,
+      alignment: WrapAlignment.center,
+      children: AnalysisMode.values.map((mode) {
+        return MagicButton(
+          label: controller.getModeDisplayName(mode),
+          onPressed: () => controller.analyze(mode),
           padding: EdgeInsets.symmetric(
-            horizontal: refSize * 0.02,
-            vertical: refSize * 0.015,
+            vertical: refSize * 0.0,
+            horizontal: refSize * 0.0,
           ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: ColorClass.white,
-                  size: refSize * 0.035,
-                ),
-                onPressed: () => Get.back(),
-              ),
-              Expanded(
-                child: Obx(
-                  () => TextWidget(
-                    text: controller.audioName.value,
-                    textColor: ColorClass.white,
-                    fontSize: refSize * 0.028,
-                    fontWeight: FontWeight.w600,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const Spacer(),
-
-        // Audio Visualization / Icon
-        Container(
-          width: refSize * 0.25,
-          height: refSize * 0.25,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                ColorClass.glowBlue.withValues(alpha: 0.3),
-                ColorClass.glowPurple.withValues(alpha: 0.3),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: ColorClass.glowPurple.withValues(alpha: 0.3),
-                blurRadius: refSize * 0.05,
-                spreadRadius: refSize * 0.01,
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.graphic_eq,
-            color: ColorClass.white,
-            size: refSize * 0.12,
-          ),
-        ),
-
-        SizedBox(height: refSize * 0.04),
-
-        // Audio Player Controls
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [_buildPlayButton(refSize)],
-        ),
-
-        SizedBox(height: refSize * 0.05),
-
-        // Transcribe Button
-        Obx(() {
-          final hasTranscription = controller.hasTranscription.value;
-          final isTranscribing = controller.isTranscribing.value;
-
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: refSize * 0.03),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isTranscribing
-                    ? null
-                    : () => controller.transcribe(),
-                icon: isTranscribing
-                    ? SizedBox(
-                        width: refSize * 0.03,
-                        height: refSize * 0.03,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: ColorClass.white,
-                        ),
-                      )
-                    : Icon(
-                        hasTranscription ? Icons.refresh : Icons.auto_awesome,
-                        size: refSize * 0.035,
-                      ),
-                label: TextWidget(
-                  text: isTranscribing
-                      ? 'Transcribing...'
-                      : hasTranscription
-                      ? 'Re-transcribe'
-                      : 'Transcribe Audio',
-                  textColor: ColorClass.white,
-                  fontSize: refSize * 0.025,
-                  fontWeight: FontWeight.w600,
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorClass.glowBlue,
-                  foregroundColor: ColorClass.white,
-                  padding: EdgeInsets.symmetric(vertical: refSize * 0.025),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(refSize * 0.015),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-
-        const Spacer(),
-
-        // Export buttons
-        Padding(
-          padding: EdgeInsets.all(refSize * 0.02),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildExportButton(
-                  'TXT',
-                  Icons.description_outlined,
-                  () async {
-                    final path = await controller.exportAsText();
-                    if (path != null) Get.snackbar('Exported', 'Saved: $path');
-                  },
-                  refSize,
-                ),
-              ),
-              SizedBox(width: refSize * 0.01),
-              Expanded(
-                child: _buildExportButton('MD', Icons.code, () async {
-                  final path = await controller.exportAsMarkdown();
-                  if (path != null) Get.snackbar('Exported', 'Saved: $path');
-                }, refSize),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: refSize * 0.02),
-      ],
+          width: refSize * 0.15,
+          height: refSize * 0.06,
+          fontSize: refSize * 0.012,
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildPlayButton(double refSize) {
-    return Obx(() {
-      final isPlaying = _audioPlayer.isPlaying.value;
-      return GestureDetector(
-        onTap: () async {
-          if (isPlaying) {
-            await _audioPlayer.stop();
-          } else {
-            await _audioPlayer.play(widget.audioPath);
-          }
-        },
-        child: Container(
-          width: refSize * 0.1,
-          height: refSize * 0.1,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: ColorClass.white,
-            boxShadow: [
-              BoxShadow(
-                color: ColorClass.white.withValues(alpha: 0.3),
-                blurRadius: refSize * 0.02,
+  Widget _buildMobileBottomBar(double refSize) {
+    return Container(
+      padding: EdgeInsets.all(refSize * 0.04),
+      decoration: const BoxDecoration(
+        color: ColorClass.darkBackground,
+        border: Border(top: BorderSide(color: ColorClass.borderLight)),
+      ),
+      child: Obx(() {
+        final hasText = controller.hasTranscription.value;
+        if (!hasText) return const SizedBox.shrink();
+
+        return Row(
+          children: [
+            Expanded(
+              child: MagicButton(
+                label: "RE-TRANSCRIBE",
+                onPressed: () => controller.transcribe(),
+                padding: EdgeInsets.symmetric(
+                  vertical: refSize * 0.015,
+                  horizontal: refSize * 0.025,
+                ),
+                width: refSize * 0.2,
+                height: refSize * 0.05,
+                fontSize: refSize * 0.02,
               ),
-            ],
-          ),
-          child: Icon(
-            isPlaying ? Icons.pause : Icons.play_arrow,
-            color: ColorClass.darkBackground,
-            size: refSize * 0.06,
-          ),
-        ),
-      );
-    });
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: MagicButton(
+                label: "EXPORT",
+                onPressed: () => _showExportOptions(refSize),
+                padding: EdgeInsets.symmetric(
+                  vertical: refSize * 0.015,
+                  horizontal: refSize * 0.025,
+                ),
+                width: refSize * 0.2,
+                height: refSize * 0.05,
+                fontSize: refSize * 0.02,
+              ),
+            ),
+          ],
+        );
+      }),
+    );
   }
 
-  Widget _buildExportButton(
-    String label,
+  Widget _buildActionButton(
     IconData icon,
+    String tooltip,
     VoidCallback onTap,
     double refSize,
   ) {
-    return Obx(() {
-      final enabled = controller.hasTranscription.value;
-      return GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: refSize * 0.02),
-          decoration: BoxDecoration(
-            color: enabled
-                ? ColorClass.glowBlue.withValues(alpha: 0.2)
-                : ColorClass.buttonBg.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(refSize * 0.015),
-            border: Border.all(
-              color: enabled
-                  ? ColorClass.glowBlue.withValues(alpha: 0.5)
-                  : ColorClass.white.withValues(alpha: 0.05),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: enabled ? ColorClass.white : ColorClass.textSecondary,
-                size: refSize * 0.035,
-              ),
-              SizedBox(width: refSize * 0.015),
-              TextWidget(
-                text: label,
-                textColor: enabled
-                    ? ColorClass.white
-                    : ColorClass.textSecondary,
-                fontSize: refSize * 0.028,
-                fontWeight: FontWeight.w500,
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  /// Transcription Section (Desktop)
-  Widget _buildTranscriptionSection(double refSize) {
-    return Column(
-      children: [
-        // Header
-        Container(
-          padding: EdgeInsets.all(refSize * 0.02),
-          decoration: BoxDecoration(
-            color: ColorClass.buttonBg,
-            border: Border(
-              bottom: BorderSide(
-                color: ColorClass.white.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.text_snippet,
-                color: ColorClass.glowBlue,
-                size: refSize * 0.035,
-              ),
-              SizedBox(width: refSize * 0.01),
-              TextWidget(
-                text: 'Transcription',
-                textColor: ColorClass.white,
-                fontSize: refSize * 0.03,
-                fontWeight: FontWeight.w600,
-              ),
-              const Spacer(),
-              // Copy button
-              Obx(() {
-                if (controller.transcribedText.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return IconButton(
-                  icon: Icon(
-                    Icons.copy,
-                    color: ColorClass.textSecondary,
-                    size: refSize * 0.03,
-                  ),
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(text: controller.transcribedText.value),
-                    );
-                    Get.snackbar('Copied', 'Text copied to clipboard');
-                  },
-                );
-              }),
-            ],
-          ),
-        ),
-
-        // Error message
-        Obx(() {
-          if (controller.errorMessage.isEmpty) return const SizedBox.shrink();
-          return Container(
-            width: double.infinity,
-            margin: EdgeInsets.all(refSize * 0.015),
-            padding: EdgeInsets.all(refSize * 0.015),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(refSize * 0.01),
-              border: Border.all(
-                color: Colors.redAccent.withValues(alpha: 0.3),
-              ),
-            ),
-            child: TextWidget(
-              text: controller.errorMessage.value,
-              textColor: Colors.redAccent,
-              fontSize: refSize * 0.02,
-            ),
-          );
-        }),
-
-        // Transcription content
-        Expanded(
-          flex: 3,
-          child: Obx(() {
-            if (controller.transcribedText.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.mic_none,
-                      size: refSize * 0.1,
-                      color: ColorClass.textSecondary.withValues(alpha: 0.3),
-                    ),
-                    SizedBox(height: refSize * 0.02),
-                    TextWidget(
-                      text: 'Click "Transcribe Audio" to start',
-                      textColor: ColorClass.textSecondary,
-                      fontSize: refSize * 0.022,
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return Container(
-              margin: EdgeInsets.all(refSize * 0.015),
-              padding: EdgeInsets.all(refSize * 0.02),
-              decoration: BoxDecoration(
-                color: ColorClass.buttonBg.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(refSize * 0.015),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SelectableText(
-                      controller.transcribedText.value,
-                      style: TextStyle(
-                        color: ColorClass.white,
-                        fontSize: refSize * 0.024,
-                        height: 1.6,
-                      ),
-                    ),
-                    // Tags
-                    if (controller.suggestedTags.isNotEmpty) ...[
-                      SizedBox(height: refSize * 0.02),
-                      Wrap(
-                        spacing: refSize * 0.008,
-                        runSpacing: refSize * 0.008,
-                        children: controller.suggestedTags
-                            .map(
-                              (tag) => Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: refSize * 0.012,
-                                  vertical: refSize * 0.006,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: ColorClass.glowPurple.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    refSize * 0.008,
-                                  ),
-                                ),
-                                child: TextWidget(
-                                  text: '#$tag',
-                                  textColor: ColorClass.glowPurple,
-                                  fontSize: refSize * 0.016,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          }),
-        ),
-
-        // AI Analysis Section
-        Container(
-          decoration: BoxDecoration(
-            color: ColorClass.buttonBg,
-            border: Border(
-              top: BorderSide(color: ColorClass.white.withValues(alpha: 0.1)),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Analysis header
-              Padding(
-                padding: EdgeInsets.all(refSize * 0.015),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      color: ColorClass.glowPurple,
-                      size: refSize * 0.03,
-                    ),
-                    SizedBox(width: refSize * 0.01),
-                    TextWidget(
-                      text: 'AI Analysis',
-                      textColor: ColorClass.white,
-                      fontSize: refSize * 0.025,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Analysis mode buttons
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: refSize * 0.015),
-                child: Row(
-                  children: AnalysisMode.values
-                      .map(
-                        (mode) => Padding(
-                          padding: EdgeInsets.only(right: refSize * 0.01),
-                          child: _buildAnalysisModeButton(mode, refSize),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-
-              SizedBox(height: refSize * 0.01),
-
-              // Analysis result
-              Obx(() {
-                if (controller.isAnalyzing.value) {
-                  return Padding(
-                    padding: EdgeInsets.all(refSize * 0.03),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: ColorClass.glowPurple,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  );
-                }
-                if (controller.analysisResult.isEmpty) {
-                  return SizedBox(height: refSize * 0.01);
-                }
-                return Container(
-                  width: double.infinity,
-                  height: refSize * 0.2,
-                  margin: EdgeInsets.all(refSize * 0.015),
-                  padding: EdgeInsets.all(refSize * 0.015),
-                  decoration: BoxDecoration(
-                    color: ColorClass.glowPurple.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(refSize * 0.01),
-                    border: Border.all(
-                      color: ColorClass.glowPurple.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      controller.analysisResult.value,
-                      style: TextStyle(
-                        color: ColorClass.white,
-                        fontSize: refSize * 0.02,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ],
+    return IconButton(
+      icon: Icon(icon, color: ColorClass.textSecondary, size: refSize * 0.04),
+      tooltip: tooltip,
+      onPressed: onTap,
     );
   }
 
-  Widget _buildAnalysisModeButton(AnalysisMode mode, double refSize) {
-    final icons = {
-      AnalysisMode.summarize: Icons.summarize,
-      AnalysisMode.simplify: Icons.lightbulb_outline,
-      AnalysisMode.actionItems: Icons.checklist,
-      AnalysisMode.format: Icons.format_align_left,
-    };
+  void _copyText() {
+    if (controller.transcribedText.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: controller.transcribedText.value));
+    Get.snackbar(
+      "Magic",
+      "Text copied to clipboard",
+      colorText: ColorClass.white,
+      backgroundColor: ColorClass.glowPurple.withValues(alpha: 0.8),
+    );
+  }
 
-    final labels = {
-      AnalysisMode.summarize: 'Summary',
-      AnalysisMode.simplify: 'Simplify',
-      AnalysisMode.actionItems: 'Actions',
-      AnalysisMode.format: 'Format',
-    };
-
-    return Obx(() {
-      final isSelected = controller.currentMode.value == mode;
-      final hasText = controller.transcribedText.isNotEmpty;
-
-      return GestureDetector(
-        onTap: hasText && !controller.isAnalyzing.value
-            ? () => controller.analyze(mode)
-            : null,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: refSize * 0.025,
-            vertical: refSize * 0.015,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? ColorClass.glowPurple
-                : hasText
-                ? ColorClass.darkBackground
-                : ColorClass.darkBackground.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(refSize * 0.012),
-            border: Border.all(
-              color: isSelected
-                  ? ColorClass.glowPurple
-                  : hasText
-                  ? ColorClass.white.withValues(alpha: 0.1)
-                  : Colors.transparent,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icons[mode],
-                color: isSelected
-                    ? ColorClass.white
-                    : hasText
-                    ? ColorClass.textSecondary
-                    : ColorClass.textSecondary.withValues(alpha: 0.3),
-                size: refSize * 0.03,
-              ),
-              SizedBox(width: refSize * 0.01),
-              TextWidget(
-                text: labels[mode]!,
-                textColor: isSelected
-                    ? ColorClass.white
-                    : hasText
-                    ? ColorClass.textSecondary
-                    : ColorClass.textSecondary.withValues(alpha: 0.3),
-                fontSize: refSize * 0.022,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ],
-          ),
+  void _showExportOptions(double refSize) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: ColorClass.buttonBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      );
-    });
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.description,
+                color: ColorClass.folderIcon,
+              ),
+              title: const TextWidget(
+                text: "Export as Text (.txt)",
+                textColor: ColorClass.white,
+                fontSize: 16,
+              ),
+              onTap: () async {
+                Get.back();
+                final path = await controller.exportAsText();
+                if (path != null) Get.snackbar("Success", "Saved to $path");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.code, color: ColorClass.glowBlue),
+              title: const TextWidget(
+                text: "Export as Markdown (.md)",
+                textColor: ColorClass.white,
+                fontSize: 16,
+              ),
+              onTap: () async {
+                Get.back();
+                final path = await controller.exportAsMarkdown();
+                if (path != null) Get.snackbar("Success", "Saved to $path");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
   }
 }
