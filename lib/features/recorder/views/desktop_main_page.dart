@@ -8,6 +8,7 @@ import 'package:recorder/features/recorder/views/all_records_page.dart';
 import 'package:recorder/features/recorder/views/settings_page.dart';
 import 'package:recorder/features/recorder/views/audio_editor_page.dart';
 import 'package:recorder/features/recorder/widgets/recorder_body.dart';
+import 'package:recorder/features/recorder/widgets/circle_button.dart';
 
 class DesktopMainPage extends StatelessWidget {
   const DesktopMainPage({super.key});
@@ -104,9 +105,9 @@ class DesktopMainPage extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF1A1A2E),
+            ColorClass.sidebarGradientTop,
             ColorClass.glowPurple.withValues(alpha: 0.3),
-            const Color(0xFF0F0F1A),
+            ColorClass.sidebarGradientBottom,
           ],
         ),
         border: Border(
@@ -260,58 +261,39 @@ class DesktopMainPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Stop
-          _buildCircleButton(
+          CircleButton(
             icon: Icons.stop,
             onTap: () => recorderController.stopRecording(),
-            isPrimary: false,
             size: secondaryButtonSize,
+            bgColor: ColorClass.transparent,
+            iconColor: ColorClass.white,
+            border: Border.all(color: ColorClass.white),
+            iconSize: secondaryButtonSize * 0.5,
           ),
           SizedBox(width: buttonSpacing),
           // Play/Pause/Record
           Obx(() {
             final isRecording = recorderController.isRecording.value;
-            return _buildCircleButton(
+            return CircleButton(
               icon: isRecording ? Icons.pause : Icons.play_arrow,
               onTap: () => recorderController.toggleRecording(),
-              isPrimary: true,
               size: primaryButtonSize,
+              bgColor: ColorClass.white,
+              iconColor: ColorClass.black,
+              iconSize: primaryButtonSize * 0.5,
             );
           }),
           SizedBox(width: buttonSpacing),
           // Close / Setup
-          _buildCircleButton(
+          CircleButton(
             icon: Icons.close,
             onTap: () {},
-            isPrimary: false,
             size: secondaryButtonSize,
+            bgColor: ColorClass.transparent,
+            iconColor: ColorClass.white,
+            border: Border.all(color: ColorClass.white),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCircleButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    bool isPrimary = false,
-    required double size,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(size),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isPrimary ? ColorClass.white : Colors.transparent,
-          border: isPrimary ? null : Border.all(color: ColorClass.white),
-        ),
-        child: Icon(
-          icon,
-          color: isPrimary ? Colors.black : ColorClass.white,
-          size: size * 0.5,
-        ),
       ),
     );
   }

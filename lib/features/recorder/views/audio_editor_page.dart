@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/controllers/audio_editor_controller.dart';
-import 'package:recorder/features/recorder/widgets/audio_editor/editor_control_button.dart';
+import 'package:recorder/features/recorder/widgets/circle_button.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/editor_side_panel.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/track_slot_widget.dart';
 import 'package:recorder/features/recorder/widgets/audio_editor/files_panel_content.dart';
@@ -118,7 +118,6 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
     super.dispose();
   }
 
-  // Mobile uchun file picker
   Future<void> _pickAudioFile({int? trackIndex}) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
@@ -148,7 +147,6 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Desktop va Mobile uchun turli layout
             _isDesktop
                 ? _buildDesktopLayout(context, size, refSize)
                 : _buildMobileLayout(context, size, refSize),
@@ -157,7 +155,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
             Obx(
               () => controller.isLoading.value
                   ? Container(
-                      color: Colors.black54,
+                      color: ColorClass.black54,
                       child: Center(
                         child: CircularProgressIndicator(
                           color: ColorClass.glowBlue,
@@ -171,8 +169,6 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
       ),
     );
   }
-
-  /// Desktop uchun layout (Row bilan 3 panel)
   Widget _buildDesktopLayout(BuildContext context, Size size, double refSize) {
     return Column(
       children: [
@@ -191,7 +187,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                 ),
               ),
 
-              // CENTER (Multi-Track) - Desktop DropTarget bilan
+              // CENTER (Multi-Track) - Desktop DropTarget 
               Expanded(
                 child: drop_helper.buildDropTarget(
                   onFileDrop: (path) => controller.loadFile(path),
@@ -475,49 +471,52 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           // Trim
-          EditorControlButton(
+          CircleButton(
             icon: Icons.content_cut,
             onTap: () => controller.trimAudio(),
-            refSize: refSize,
-            color: Colors.redAccent,
-            bgColor: Colors.transparent,
+            size: refSize * 0.1,
+            iconColor: ColorClass.redAccent,
+            bgColor: ColorClass.transparent,
+            border: Border.all(color: ColorClass.redAccent.withValues(alpha: 0.5)),
+            iconSize: refSize * 0.05,
           ),
 
           // Play
-          SizedBox(
-            width: refSize * 0.13,
-            height: refSize * 0.13,
-            child: FloatingActionButton(
-              onPressed: () => controller.playPreview(),
-              backgroundColor: ColorClass.white,
-              child: Icon(
-                Icons.play_arrow,
-                color: Colors.black,
-                size: refSize * 0.07,
-              ),
-            ),
+          CircleButton(
+            icon: Icons.play_arrow,
+            onTap: () => controller.playPreview(),
+            size: refSize * 0.13,
+            bgColor: ColorClass.white,
+            iconColor: ColorClass.black,
+            iconSize: refSize * 0.07,
           ),
 
           // Cut
-          EditorControlButton(
+          CircleButton(
             icon: Icons.cut_outlined,
             onTap: () => controller.cutAudio(),
-            refSize: refSize,
-            color: ColorClass.white,
-            bgColor: Colors.transparent,
+            size: refSize * 0.1,
+            iconColor: ColorClass.white,
+            bgColor: ColorClass.transparent,
+            border: Border.all(color: ColorClass.white.withValues(alpha: 0.5)),
+            iconSize: refSize * 0.05,
           ),
 
           // Merge
-          EditorControlButton(
+          CircleButton(
             icon: Icons.merge,
             onTap: () => controller.mergeAndExport(),
-            refSize: refSize,
-            color: ColorClass.glowBlue,
-            bgColor: Colors.transparent,
+            size: refSize * 0.1,
+            iconColor: ColorClass.glowBlue,
+            bgColor: ColorClass.transparent,
+            border: Border.all(
+              color: ColorClass.glowBlue.withValues(alpha: 0.5),
+            ),
+            iconSize: refSize * 0.05,
           ),
 
           // AI Button
-          EditorControlButton(
+          CircleButton(
             icon: Icons.auto_awesome,
             onTap: () {
               if (controller.activeTrack.filePath.isNotEmpty) {
@@ -529,9 +528,13 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                 Get.snackbar('Error', 'No audio file loaded');
               }
             },
-            refSize: refSize,
-            color: ColorClass.glowPurple,
-            bgColor: Colors.transparent,
+            size: refSize * 0.1,
+            iconColor: ColorClass.glowPurple,
+            bgColor: ColorClass.transparent,
+            border: Border.all(
+              color: ColorClass.glowPurple.withValues(alpha: 0.5),
+            ),
+            iconSize: refSize * 0.05,
           ),
         ],
       ),
