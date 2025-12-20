@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:recorder/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:recorder/features/recorder/widgets/text_widget.dart';
 
 class FolderButton extends StatefulWidget {
   final VoidCallback? onTap;
@@ -78,10 +79,6 @@ class _FolderButtonState extends State<FolderButton>
         child: AnimatedBuilder(
           animation: Listenable.merge([_hoverAnimation, _floatAnimation]),
           builder: (context, child) {
-            // Hover scale effect from .folder:hover -> scale(1.05)
-            // CSS: .container:hover .back-side::before -> rotateX(-5deg) skewX(5deg)
-            // CSS: .container:hover .back-side::after -> rotateX(-15deg) skewX(12deg)
-            // CSS: .container:hover .front-side -> rotateX(-40deg) skewX(15deg)
 
             final hoverValue = _hoverAnimation.value;
             final floatY = _floatAnimation.value;
@@ -101,7 +98,7 @@ class _FolderButtonState extends State<FolderButton>
                         borderRadius: BorderRadius.circular(refSize * 0.0375),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: ColorClass.black.withValues(alpha: 0.2),
                             blurRadius: refSize * 0.075,
                             offset: Offset(0, refSize * 0.0375),
                           ),
@@ -192,7 +189,7 @@ class _FolderButtonState extends State<FolderButton>
       width: w,
       height: h,
       decoration: BoxDecoration(
-        color: const Color(0xFFffc663).withValues(alpha: 0.5), // Fallback color
+        color: ColorClass.folderBack.withValues(alpha: 0.5), // Fallback color
         borderRadius: BorderRadius.circular(refSize * 0.0375),
       ),
     );
@@ -215,7 +212,7 @@ class _FolderButtonState extends State<FolderButton>
         width: w,
         height: h,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
+          color: ColorClass.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(refSize * 0.0375),
         ),
       ),
@@ -255,7 +252,10 @@ class _FolderButtonState extends State<FolderButton>
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFFff9a56), Color(0xFFff6f56)],
+                    colors: [
+                      ColorClass.folderTipTop,
+                      ColorClass.folderTipBottom,
+                    ],
                   ),
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(refSize * 0.03),
@@ -279,12 +279,15 @@ class _FolderButtonState extends State<FolderButton>
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFffe563), Color(0xFFffc663)],
+                  colors: [
+                    ColorClass.folderFrontTop,
+                    ColorClass.folderFrontBottom,
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(refSize * 0.025),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black38, // 0.3 opacity
+                    color: Colors.black38, 
                     blurRadius: refSize * 0.075,
                     offset: Offset(0, refSize * 0.0375),
                   ),
@@ -305,27 +308,24 @@ class _FolderButtonState extends State<FolderButton>
         horizontal: refSize * 0.0875,
       ),
       decoration: BoxDecoration(
-        // Background: 0.2 -> 0.4 on hover
-        color: Colors.white.withValues(alpha: 0.2 + (0.2 * hoverValue)),
+        color: ColorClass.white.withValues(alpha: 0.2 + (0.2 * hoverValue)),
         borderRadius: BorderRadius.circular(refSize * 0.025),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: ColorClass.black.withValues(alpha: 0.1),
             blurRadius: refSize * 0.05,
             offset: Offset(0, refSize * 0.025),
           ),
         ],
       ),
-      child: Text(
-        widget.label,
+      child: TextWidget(
+        text: widget.label,
         textAlign: TextAlign.center,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: refSize * 0.03, // Reduced from 0.04
-          fontWeight: FontWeight.w500,
-        ),
+        textColor: ColorClass.white,
+        fontSize: refSize * 0.03, 
+        fontWeight: FontWeight.w500,
       ),
     );
   }
