@@ -5,6 +5,7 @@ class ColorClass {
   static const Color white = Colors.white;
   static const Color grey = Colors.grey;
   static const Color blue = Colors.blueGrey;
+  static const Color black54 = Colors.black54;
 
   // Recorder Page Colors
   static const Color darkBackground = Color(0xFF050812); // Deep dark background
@@ -13,14 +14,26 @@ class ColorClass {
   static const Color textSecondary = Colors.white70;
   static const Color buttonBg = Color(0xFF1C1F2E); // Dark button background
 
+  // Folder Colors
+  static const Color folderFrontTop = Color(0xFFffe563);
+  static const Color folderFrontBottom = Color(0xFFffc663);
+  static const Color folderTipTop = Color(0xFFff9a56);
+  static const Color folderTipBottom = Color(0xFFff6f56);
+  static const Color folderBack = Color(0xFFffc663);
+
   // Folder & Action Colors
   static const Color folderIcon = Colors.amberAccent;
   static const Color editIcon = Colors.orangeAccent;
   static const Color moveIcon = Colors.purpleAccent;
   static const Color deleteIcon = Colors.redAccent;
+  static const Color redAccent = Colors.redAccent;
 
   static const Color transparent = Colors.transparent;
   static const Color borderLight = Colors.white10;
+
+  // Sidebar Gradient Colors
+  static const Color sidebarGradientTop = Color(0xFF1A1A2E);
+  static const Color sidebarGradientBottom = Color(0xFF0F0F1A);
 
   // Track Colors
   static const Color trackBlue = Colors.blueAccent;
