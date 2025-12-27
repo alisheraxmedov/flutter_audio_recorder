@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,15 +8,13 @@ import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/core/services/ai_analysis_service.dart';
 import 'package:recorder/core/services/audio_player_service.dart';
 import 'package:recorder/features/recorder/controllers/ai_controller.dart';
+import 'package:recorder/features/recorder/widgets/app_dialog.dart';
 import 'package:recorder/features/recorder/widgets/magic_widgets/magic_button.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
-import 'package:recorder/features/recorder/widgets/circle_button.dart';
 
 class AiPage extends StatefulWidget {
   final String audioPath;
-
   const AiPage({super.key, required this.audioPath});
-
   @override
   State<AiPage> createState() => _AiPageState();
 }
@@ -23,7 +22,6 @@ class AiPage extends StatefulWidget {
 class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
   late final AiController controller;
   late final AudioPlayerService _audioPlayer;
-
   late final AnimationController _glowController;
   late final Animation<double> _glowAnimation;
 
@@ -36,14 +34,11 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     controller = Get.put(AiController());
     _audioPlayer = Get.find<AudioPlayerService>();
     controller.loadAudio(widget.audioPath);
-
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-
-    _audioPlayer.prepare(widget.audioPath); // Preload duration
-
+    _audioPlayer.prepare(widget.audioPath);
     _glowAnimation = Tween<double>(begin: 0.2, end: 0.6).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
@@ -61,25 +56,10 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final refSize = size.shortestSide.clamp(300.0, 800.0);
-
     return Scaffold(
-      backgroundColor: ColorClass.darkBackground,
-      // Stack for background ambient effects
+      backgroundColor: const Color(0xFF0F172A), // Deep Slate Navy
       body: Stack(
         children: [
-          // Ambient Background Glow
-          Positioned(
-            top: -100,
-            right: -100,
-            child: _buildAmbientOrb(refSize, ColorClass.glowPurple),
-          ),
-          Positioned(
-            bottom: -100,
-            left: -100,
-            child: _buildAmbientOrb(refSize, ColorClass.glowBlue),
-          ),
-
-          // Main Glassmorphic Content
           SafeArea(
             child: _isDesktop
                 ? _buildMagicDesktopLayout(size, refSize)
@@ -90,108 +70,135 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildAmbientOrb(double refSize, Color color) {
-    return Container(
-      width: refSize * 1.5,
-      height: refSize * 1.5,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color.withValues(alpha: 0.15), ColorClass.transparent],
-        ),
-      ),
-    );
-  }
-
-  /// DESKTOP LAYOUT - High Tech Dashboard Style
   Widget _buildMagicDesktopLayout(Size size, double refSize) {
     return Row(
       children: [
+        // Sidebar - Dynamic (original 200px)
         Container(
-          width: size.width * 0.28,
-          margin: EdgeInsets.all(refSize * 0.02),
-          padding: EdgeInsets.all(refSize * 0.03),
-          decoration: _magicDecoration(refSize),
+          width: refSize * 0.25,
+          margin: EdgeInsets.all(refSize * 0.01),
+          padding: EdgeInsets.all(refSize * 0.01),
+          decoration: BoxDecoration(
+            color: const Color(
+              0xFF1E293B,
+            ).withValues(alpha: 0.5), // Slate 800 transparent
+            borderRadius: BorderRadius.circular(refSize * 0.01),
+            border: Border.all(color: ColorClass.white10, width: 0.5),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleButton(
-                icon: Icons.arrow_back,
-                onTap: () => Get.back(),
-                size: refSize * 0.08,
-                bgColor: ColorClass.white.withValues(alpha: 0.1),
-                iconColor: ColorClass.white,
-                iconSize: refSize * 0.04,
+              // Header Block - Compact
+              Row(
+                children: [
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => Get.back(),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: ColorClass.white70,
+                        size: refSize * 0.02,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: refSize * 0.01),
+                  Expanded(
+                    child: Obx(
+                      () => TextWidget(
+                        text: controller.audioName.value,
+                        textColor: ColorClass.white70,
+                        fontSize: refSize * 0.015,
+                        fontWeight: FontWeight.w500,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: refSize * 0.01),
-              Obx(
-                () => TextWidget(
-                  text: controller.audioName.value,
-                  textColor: ColorClass.white,
-                  fontSize: refSize * 0.022,
-                  fontWeight: FontWeight.w600,
-                  maxLines: 2,
+              SizedBox(height: refSize * 0.02),
+
+              // AI Actions (Thin Buttons)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: _buildAnalysisButtonsVertical(refSize),
                 ),
               ),
 
-              const Spacer(),
+              SizedBox(height: refSize * 0.01),
 
-              // Magic Orb Visualization
-              Center(child: _buildMagicOrbWrapper(refSize * 0.15)),
-
-              const Spacer(),
-
-              // Compact Player Controls
-              _buildCompactPlayer(refSize),
-
-              SizedBox(height: refSize * 0.03),
-              const Divider(color: ColorClass.borderLight),
-              SizedBox(height: refSize * 0.03),
-
-              // Quick Analysis Buttons
-              _buildAnalysisButtonsGrid(refSize),
+              // Player Block - Linear & Compact
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: refSize * 0.01,
+                  vertical: refSize * 0.005,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: ColorClass.white10, width: 0.5),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _buildHorizontalWaveform(refSize),
+                    SizedBox(height: refSize * 0.005),
+                    _buildCompactPlayer(refSize),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-
-        // RIGHT CONTENT - Transcription Board (75%)
+        // Main Workspace
         Expanded(
           child: Container(
             margin: EdgeInsets.only(
-              top: refSize * 0.02,
-              bottom: refSize * 0.02,
-              right: refSize * 0.02,
+              top: refSize * 0.01,
+              bottom: refSize * 0.01,
+              right: refSize * 0.01,
             ),
-            decoration: _magicDecoration(refSize),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                // Header
-                _buildTranscriptionHeader(refSize),
-
-                // Main Content
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(child: _buildTranscriptionContent(refSize)),
-                      // Optional Right Sidebar for Analysis (if exists)
-                      Obx(() {
-                        if (controller.analysisResult.isEmpty) return const SizedBox();
-                        return Container(
-                          width: size.width * 0.25,
-                          decoration: BoxDecoration(
-                            border: const Border(
-                              left: BorderSide(color: ColorClass.borderLight),
-                            ),
-                            color: ColorClass.black.withValues(alpha: 0.2),
-                          ),
-                          child: _buildAnalysisResultPanel(refSize),
-                        );
-                      }),
-                    ],
-                  ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B).withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(refSize * 0.015),
+              border: Border.all(color: ColorClass.white10, width: 0.5),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(refSize * 0.015),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: Column(
+                  children: [
+                    _buildTranscriptionHeader(refSize),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(child: _buildTranscriptionContent(refSize)),
+                          // Optional Right Panel (Analysis)
+                          Obx(() {
+                            if (controller.analysisResult.isEmpty) {
+                              return const SizedBox();
+                            }
+                            return Container(
+                              width: refSize * 0.44,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                    color: ColorClass.white10,
+                                    width: 0.5,
+                                  ),
+                                ),
+                              ),
+                              child: _buildAnalysisResultPanel(refSize),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    _buildStatusBar(refSize),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -199,11 +206,9 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     );
   }
 
-  /// MOBILE LAYOUT - Modern Sheet Style
   Widget _buildMagicMobileLayout(Size size, double refSize) {
     return Column(
       children: [
-        // Header
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: refSize * 0.04,
@@ -211,13 +216,13 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
           ),
           child: Row(
             children: [
-              CircleButton(
-                icon: Icons.arrow_back,
-                onTap: () => Get.back(),
-                size: refSize * 0.08,
-                bgColor: ColorClass.white.withValues(alpha: 0.1),
-                iconColor: ColorClass.white,
-                iconSize: refSize * 0.04,
+              IconButton(
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: ColorClass.white,
+                  size: refSize * 0.06,
+                ),
+                onPressed: () => Get.back(),
               ),
               SizedBox(width: refSize * 0.03),
               Expanded(
@@ -226,9 +231,10 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
                   children: [
                     TextWidget(
                       text: "AI STUDIO",
-                      textColor: ColorClass.glowPurple,
-                      fontSize: refSize * 0.03,
+                      textColor: ColorClass.neonPurple,
+                      fontSize: refSize * 0.045,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
                     ),
                     Obx(
                       () => TextWidget(
@@ -241,44 +247,41 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
                   ],
                 ),
               ),
-              _buildMagicOrbWrapper(refSize * 0.12),
+              _buildPlasmaOrb(refSize * 0.15),
             ],
           ),
         ),
-
-        // Compact Player Bar (Very minimalist)
         Container(
           margin: EdgeInsets.symmetric(horizontal: refSize * 0.04),
-          padding: EdgeInsets.symmetric(
-            vertical: refSize * 0.02,
-            horizontal: refSize * 0.04,
+          child: _glassMorphicContainer(
+            padding: EdgeInsets.symmetric(
+              vertical: refSize * 0.02,
+              horizontal: refSize * 0.04,
+            ),
+            borderRadius: refSize * 0.1,
+            refSize: refSize,
+            child: _buildCompactPlayer(refSize),
           ),
-          decoration: BoxDecoration(
-            color: ColorClass.buttonBg.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(refSize * 0.1),
-            border: Border.all(color: ColorClass.borderLight),
-          ),
-          child: _buildCompactPlayer(refSize),
         ),
-
         SizedBox(height: refSize * 0.02),
-
-        // Main Transcription Area (Expanded)
         Expanded(
-          child: Container(
-            width: double.infinity,
+          child: _glassMorphicContainer(
             margin: EdgeInsets.symmetric(horizontal: refSize * 0.02),
-            decoration: _magicDecoration(refSize),
+            refSize: refSize,
             child: DefaultTabController(
               length: 2,
               child: Column(
                 children: [
-                  const TabBar(
+                  TabBar(
                     dividerColor: ColorClass.transparent,
-                    indicatorColor: ColorClass.glowBlue,
-                    labelColor: ColorClass.glowBlue,
-                    unselectedLabelColor: ColorClass.textSecondary,
-                    tabs: [
+                    indicatorColor: ColorClass.neonTeal,
+                    labelColor: ColorClass.neonTeal,
+                    unselectedLabelColor: ColorClass.white30,
+                    labelStyle: TextStyle(
+                      fontSize: refSize * 0.035,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    tabs: const [
                       Tab(text: "TRANSCRIPT"),
                       Tab(text: "AI INSIGHTS"),
                     ],
@@ -296,62 +299,98 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
             ),
           ),
         ),
-
-        // Bottom Action Bar
         _buildMobileBottomBar(refSize),
       ],
     );
   }
 
-  // --- COMPONENTS ---
-
-  BoxDecoration _magicDecoration(double refSize) {
-    return BoxDecoration(
-      color: ColorClass.buttonBg.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(refSize * 0.025),
-      border: Border.all(color: ColorClass.white.withValues(alpha: 0.05)),
-      boxShadow: [
-        BoxShadow(
-          color: ColorClass.black.withValues(alpha: 0.2),
-          blurRadius: 10,
-          spreadRadius: 2,
+  Widget _glassMorphicContainer({
+    required Widget child,
+    double blur = 20.0,
+    double? borderRadius,
+    EdgeInsetsGeometry? margin,
+    EdgeInsetsGeometry? padding,
+    double? width,
+    double? height,
+    double? refSize,
+  }) {
+    final effectiveBorderRadius =
+        borderRadius ?? (refSize != null ? refSize * 0.05 : 24.0);
+    return Container(
+      width: width,
+      height: height,
+      margin: margin,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(effectiveBorderRadius),
+        border: Border.all(
+          color: ColorClass.white.withValues(alpha: 0.1),
+          width: refSize != null ? refSize * 0.002 : 1,
         ),
-      ],
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: refSize != null ? refSize * 0.001 : 0.5,
+                decoration: BoxDecoration(
+                  color: ColorClass.white.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      ColorClass.white.withValues(alpha: 0.05),
+                      ColorClass.transparent,
+                      ColorClass.transparent,
+                    ],
+                    stops: const [0.0, 0.4, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            Padding(padding: padding ?? EdgeInsets.zero, child: child),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildMagicOrbWrapper(double size) {
+  Widget _buildPlasmaOrb(double size) {
     return AnimatedBuilder(
       animation: _glowController,
       builder: (context, child) {
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [ColorClass.glowPurple, ColorClass.glowBlue],
+        final scale = 1.0 + (_glowAnimation.value - 0.2) * 0.2;
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [ColorClass.neonPurple, ColorClass.neonTeal],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: ColorClass.neonPurple.withValues(
+                    alpha: _glowAnimation.value,
+                  ),
+                  blurRadius: size * 0.4,
+                  spreadRadius: size * 0.1,
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: ColorClass.glowPurple.withValues(
-                  alpha: _glowAnimation.value,
-                ),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-              BoxShadow(
-                color: ColorClass.glowBlue.withValues(
-                  alpha: _glowAnimation.value,
-                ),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Center(
             child: Icon(
               Icons.auto_awesome,
               color: ColorClass.white,
@@ -363,114 +402,197 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildCompactPlayer(double refSize) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: refSize * 0.02),
+  Widget _buildHorizontalWaveform(double refSize) {
+    return SizedBox(
+      height: refSize * 0.05,
       child: Row(
-        children: [
-          // Play/Pause Button
-          Obx(() {
-            return CircleButton(
-              icon: _audioPlayer.isPlaying.value
-                  ? Icons.pause_circle_filled
-                  : Icons.play_circle_fill,
-              onTap: () {
-                if (_audioPlayer.isPlaying.value) {
-                  _audioPlayer.pause();
-                } else {
-                  _audioPlayer.play(widget.audioPath);
-                }
-              },
-              size: refSize * 0.09,
-              bgColor: ColorClass.transparent,
-              iconColor: ColorClass.white,
-              iconSize: refSize * 0.05,
-            );
-          }),
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(40, (index) {
+          // Create a wave pattern
+          final height =
+              refSize * 0.0125 +
+              (refSize *
+                  0.03 *
+                  (index % 2 == 0 ? 0.5 : 1.0) *
+                  (index % 5 == 0 ? 1.5 : 0.8));
 
-          SizedBox(width: refSize * 0.03),
-
-          // Slider & Time
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Progress Bar
-                Obx(() {
-                  final position = _audioPlayer.position.value;
-                  final duration = _audioPlayer.duration.value;
-                  final progress = duration.inMilliseconds > 0
-                      ? position.inMilliseconds / duration.inMilliseconds
-                      : 0.0;
-                  return LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
-                    backgroundColor: ColorClass.white.withValues(alpha: 0.1),
-                    color: ColorClass.glowBlue,
-                    borderRadius: BorderRadius.circular(2),
-                    minHeight: refSize * 0.01,
-                  );
-                }),
-                SizedBox(height: refSize * 0.01),
-                // Time Text
-                Obx(() {
-                  final position = _audioPlayer.position.value;
-                  final duration = _audioPlayer.duration.value;
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextWidget(
-                        text: _formatDuration(position),
-                        textColor: ColorClass.white,
-                        fontSize: refSize * 0.02,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      TextWidget(
-                        text: _formatDuration(duration),
-                        textColor: ColorClass.textSecondary,
-                        fontSize: refSize * 0.02,
-                      ),
-                    ],
-                  );
-                }),
-              ],
+          return Flexible(
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 1),
+              width: 3,
+              height: height.clamp(4.0, refSize * 0.045),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(1.5),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [ColorClass.neonBlue, ColorClass.neonPurple],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorClass.neonBlue.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        }),
       ),
+    );
+  }
+
+  Widget _buildCompactPlayer(double refSize) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Obx(
+              () => IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  _audioPlayer.isPlaying.value
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_fill,
+                  size: refSize * 0.04,
+                  color: ColorClass.white,
+                ),
+                onPressed: () => _audioPlayer.isPlaying.value
+                    ? _audioPlayer.pause()
+                    : _audioPlayer.play(widget.audioPath),
+              ),
+            ),
+            SizedBox(width: refSize * 0.01),
+            Expanded(
+              child: Obx(() {
+                final duration = _audioPlayer.duration.value;
+                final progress = duration.inMilliseconds > 0
+                    ? _audioPlayer.position.value.inMilliseconds /
+                          duration.inMilliseconds
+                    : 0.0;
+                return LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  backgroundColor: ColorClass.white10,
+                  color: ColorClass.neonBlue,
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(2),
+                );
+              }),
+            ),
+          ],
+        ),
+        SizedBox(height: refSize * 0.005),
+        Obx(
+          () => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextWidget(
+                text: _formatDuration(_audioPlayer.position.value),
+                textColor: ColorClass.white60,
+                fontSize: refSize * 0.0125,
+              ),
+              TextWidget(
+                text: _formatDuration(_audioPlayer.duration.value),
+                textColor: ColorClass.white60,
+                fontSize: refSize * 0.0125,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnalysisButtonsVertical(double refSize) {
+    final colors = [
+      ColorClass.neonTeal,
+      ColorClass.neonPurple,
+      ColorClass.neonGreen,
+      ColorClass.neonAmber,
+    ];
+    return Column(
+      children: List.generate(AnalysisMode.values.length, (index) {
+        final mode = AnalysisMode.values[index];
+        return Padding(
+          padding: EdgeInsets.only(bottom: refSize * 0.01),
+          child: _MagneticNeonButton(
+            label: controller.getModeDisplayName(mode),
+            color: colors[index % colors.length],
+            onPressed: () => controller.analyze(mode),
+            refSize: refSize,
+            isCompact: true,
+          ),
+        );
+      }),
     );
   }
 
   Widget _buildTranscriptionHeader(double refSize) {
     return Container(
-      padding: EdgeInsets.all(refSize * 0.03),
-      decoration: const BoxDecoration(
-        color: ColorClass.transparent,
-        border: Border(bottom: BorderSide(color: ColorClass.borderLight)),
+      padding: EdgeInsets.symmetric(
+        horizontal: refSize * 0.02,
+        vertical: refSize * 0.015,
+      ),
+      decoration: BoxDecoration(
+        color: ColorClass.white.withValues(alpha: 0.02),
+        border: Border(
+          bottom: BorderSide(color: ColorClass.white10, width: 0.5),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.notes, color: ColorClass.glowBlue, size: refSize * 0.04),
-          SizedBox(width: refSize * 0.02),
           TextWidget(
             text: "TRANSCRIPT",
-            textColor: ColorClass.white,
-            fontWeight: FontWeight.bold,
-            fontSize: refSize * 0.025,
+            textColor: ColorClass.white70,
+            fontWeight: FontWeight.w600,
+            fontSize: refSize * 0.016,
+            letterSpacing: 0.5,
+          ),
+          SizedBox(width: refSize * 0.01),
+          // Tiny Badge
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: refSize * 0.0075,
+              vertical: refSize * 0.0025,
+            ),
+            decoration: BoxDecoration(
+              color: ColorClass.neonGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(refSize * 0.005),
+              border: Border.all(
+                color: ColorClass.neonGreen.withValues(alpha: 0.2),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: refSize * 0.005,
+                  height: refSize * 0.005,
+                  decoration: const BoxDecoration(
+                    color: ColorClass.neonGreen,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: refSize * 0.005),
+                TextWidget(
+                  text: "READY",
+                  textColor: ColorClass.neonGreen,
+                  fontSize: refSize * 0.011,
+                  fontWeight: FontWeight.bold,
+                ),
+              ],
+            ),
           ),
           const Spacer(),
-          _buildActionButton(Icons.copy, "Copy", () => _copyText(), refSize),
-          SizedBox(width: refSize * 0.02),
-          _buildActionButton(
-            Icons.download,
-            "Export",
-            () => _showExportOptions(refSize),
-            refSize,
-          ),
         ],
       ),
     );
   }
+
+  // _buildAiReadyBadge removed
 
   Widget _buildTranscriptionContent(double refSize) {
     return Obx(() {
@@ -479,298 +601,287 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: ColorClass.glowPurple),
-              SizedBox(height: refSize * 0.04),
+              SizedBox(
+                width: refSize * 0.03,
+                height: refSize * 0.03,
+                child: CircularProgressIndicator(
+                  color: ColorClass.neonTeal,
+                  strokeWidth: 2,
+                ),
+              ),
+              SizedBox(height: refSize * 0.015),
               TextWidget(
-                text: "AI is listening...",
-                textColor: ColorClass.textSecondary,
-                fontSize: refSize * 0.03,
+                text: "Listening...",
+                textColor: ColorClass.white54,
+                fontSize: refSize * 0.015,
               ),
             ],
           ),
         );
       }
-
       if (controller.transcribedText.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.graphic_eq,
-                size: refSize * 0.1,
-                color: ColorClass.white.withValues(alpha: 0.1),
-              ),
-              SizedBox(height: refSize * 0.02),
-              TextWidget(
-                text: "Ready to Transcribe",
-                textColor: ColorClass.textSecondary,
-                fontSize: refSize * 0.03,
-              ),
-              SizedBox(height: refSize * 0.04),
-              MagicButton(
-                label: "START TRANSCRIPTION",
-                onPressed: () => controller.transcribe(),
-                padding: EdgeInsets.symmetric(
-                  vertical: refSize * 0.015,
-                  horizontal: refSize * 0.025,
-                ),
-                width: refSize * 0.5,
-                height: refSize * 0.07,
-                fontSize: refSize * 0.02,
-              ),
-            ],
-          ),
-        );
-      }
-
-      return ListView(
-        padding: EdgeInsets.all(refSize * 0.04),
-        children: [
-          SelectableText(
-            controller.transcribedText.value,
-            style: TextStyle(
-              color: ColorClass.white.withValues(alpha: 0.9),
-              fontSize: refSize * 0.035,
-              height: 1.8,
-              fontFamily: 'Inter',
-            ),
-          ),
-          SizedBox(height: refSize * 0.04),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: controller.suggestedTags
-                .map(
-                  (tag) => Chip(
-                    label: TextWidget(
-                      text: "#$tag",
-                      textColor: ColorClass.glowPurple,
-                      fontSize: refSize * 0.02,
-                    ),
-                    backgroundColor: ColorClass.glowPurple.withValues(
-                      alpha: 0.2,
-                    ),
-                    labelStyle: const TextStyle(color: ColorClass.glowPurple),
-                    side: BorderSide.none,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      );
-    });
-  }
-
-  // ================================================================================
-
-  Widget _buildMobileAnalysisTab(double refSize) {
-    return Padding(
-      padding: EdgeInsets.all(refSize * 0.03),
-      child: Column(
-        children: [
-          _buildAnalysisButtonsGrid(refSize),
-          SizedBox(height: refSize * 0.04),
-          Expanded(child: _buildAnalysisResultPanel(refSize)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnalysisResultPanel(double refSize) {
-    return Obx(() {
-      if (controller.isAnalyzing.value) {
-        return const Center(
-          child: CircularProgressIndicator(color: ColorClass.glowBlue),
-        );
-      }
-      if (controller.analysisResult.isEmpty) {
-        return Center(
-          child: TextWidget(
-            text: "Select a magic tool to analyze",
-            textColor: ColorClass.textSecondary.withValues(alpha: 0.5),
-            fontSize: refSize * 0.03,
-          ),
-        );
-      }
-      return Container(
-        padding: EdgeInsets.all(refSize * 0.03),
-        decoration: BoxDecoration(
-          color: ColorClass.glowPurple.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: ColorClass.glowPurple.withValues(alpha: 0.2),
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb,
-                    color: ColorClass.glowBlue,
-                    size: refSize * 0.04,
-                  ),
-                  const SizedBox(width: 8),
-                  TextWidget(
-                    text: "INSIGHTS",
-                    textColor: ColorClass.glowBlue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: refSize * 0.03,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SelectableText(
-                controller.analysisResult.value,
-                style: TextStyle(
-                  color: ColorClass.white,
-                  fontSize: refSize * 0.032,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildAnalysisButtonsGrid(double refSize) {
-    return Wrap(
-      spacing: refSize * 0.015,
-      runSpacing: refSize * 0.015,
-      alignment: WrapAlignment.center,
-      children: AnalysisMode.values.map((mode) {
-        return MagicButton(
-          label: controller.getModeDisplayName(mode),
-          onPressed: () => controller.analyze(mode),
-          padding: EdgeInsets.symmetric(
-            vertical: refSize * 0.0,
-            horizontal: refSize * 0.0,
-          ),
-          width: refSize * 0.15,
-          height: refSize * 0.06,
-          fontSize: refSize * 0.012,
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildMobileBottomBar(double refSize) {
-    return Container(
-      padding: EdgeInsets.all(refSize * 0.04),
-      decoration: const BoxDecoration(
-        color: ColorClass.darkBackground,
-        border: Border(top: BorderSide(color: ColorClass.borderLight)),
-      ),
-      child: Obx(() {
-        final hasText = controller.hasTranscription.value;
-        if (!hasText) return const SizedBox.shrink();
-
-        return Row(
+        return Stack(
           children: [
-            Expanded(
-              child: MagicButton(
-                label: "RE-TRANSCRIBE",
-                onPressed: () => controller.transcribe(),
-                padding: EdgeInsets.symmetric(
-                  vertical: refSize * 0.015,
-                  horizontal: refSize * 0.025,
-                ),
-                width: refSize * 0.2,
-                height: refSize * 0.05,
-                fontSize: refSize * 0.02,
+            Positioned(
+              top: refSize * 0.02,
+              left: refSize * 0.02,
+              child: TextWidget(
+                text: "Ready to transcribe...",
+                textColor: ColorClass.white24,
+                fontSize: refSize * 0.016,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: MagicButton(
-                label: "EXPORT",
-                onPressed: () => _showExportOptions(refSize),
-                padding: EdgeInsets.symmetric(
-                  vertical: refSize * 0.015,
-                  horizontal: refSize * 0.025,
-                ),
-                width: refSize * 0.2,
-                height: refSize * 0.05,
-                fontSize: refSize * 0.02,
-              ),
+            Positioned(
+              bottom: refSize * 0.02,
+              left: refSize * 0.02,
+              right: refSize * 0.02,
+              child: _buildPrimaryActionButton(refSize),
             ),
           ],
         );
-      }),
+      }
+      return Stack(
+        children: [
+          ListView(
+            padding: EdgeInsets.all(refSize * 0.02),
+            children: [
+              SelectableText(
+                controller.transcribedText.value,
+                style: TextStyle(
+                  color: ColorClass.white,
+                  fontSize: refSize * 0.016,
+                  height: 1.5,
+                  fontFamily: 'Inter',
+                  fontStyle: FontStyle.normal,
+                ),
+              ),
+              SizedBox(height: refSize * 0.075),
+            ],
+          ),
+          if (!controller.isTranscribing.value)
+            Positioned(
+              bottom: refSize * 0.02,
+              left: refSize * 0.02,
+              right: refSize * 0.02,
+              child: _buildPrimaryActionButton(refSize),
+            ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildPrimaryActionButton(double refSize) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MagicButton(
+                label: "Copy",
+                onPressed: _copyText,
+                width: refSize * 0.11,
+                height: refSize * 0.045,
+                fontSize: refSize * 0.014,
+              ),
+              SizedBox(width: refSize * 0.01),
+              MagicButton(
+                label: "Export",
+                onPressed: () => _showExportOptions(refSize),
+                width: refSize * 0.11,
+                height: refSize * 0.045,
+                fontSize: refSize * 0.014,
+              ),
+            ],
+          ),
+        ),
+        MagicButton(
+          label: "START",
+          onPressed: () => controller.transcribe(),
+          width: refSize * 0.18,
+          height: refSize * 0.06,
+          fontSize: refSize * 0.02,
+        ),
+      ],
     );
   }
 
-  Widget _buildActionButton(
-    IconData icon,
-    String tooltip,
-    VoidCallback onTap,
-    double refSize,
-  ) {
-    return IconButton(
-      icon: Icon(icon, color: ColorClass.textSecondary, size: refSize * 0.04),
-      tooltip: tooltip,
-      onPressed: onTap,
+  Widget _buildMobileAnalysisTab(double refSize) =>
+      _buildAnalysisResultPanel(refSize);
+  Widget _buildAnalysisResultPanel(double refSize) => Obx(() {
+    return Container(
+      decoration: BoxDecoration(
+        color: ColorClass.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(refSize * 0.01),
+          bottomLeft: Radius.circular(refSize * 0.01),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: refSize * 0.02,
+              vertical: refSize * 0.015,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: ColorClass.white10, width: 0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextWidget(
+                  text: "ANALYSIS",
+                  textColor: ColorClass.white54,
+                  fontSize: refSize * 0.0125,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.bold,
+                ),
+                Icon(
+                  Icons.auto_awesome,
+                  size: refSize * 0.015,
+                  color: ColorClass.neonPurple,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(refSize * 0.02),
+              child: SelectableText(
+                controller.analysisResult.value,
+                style: TextStyle(
+                  color: ColorClass.white70,
+                  fontSize: refSize * 0.015,
+                  height: 1.6,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  });
+  Widget _buildMobileBottomBar(double refSize) => Container(
+    padding: EdgeInsets.all(refSize * 0.03),
+    child: _buildAnalysisButtonsVertical(refSize),
+  );
+
+  Widget _buildStatusBar(double refSize) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: refSize * 0.02,
+        vertical: refSize * 0.005,
+      ),
+      decoration: BoxDecoration(
+        color: ColorClass.white.withValues(alpha: 0.02),
+        border: Border(top: BorderSide(color: ColorClass.white10, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          _buildStatusItem("Ln 1, Col 1", refSize),
+          const Spacer(),
+          _buildStatusItem("Word Count: 0", refSize),
+          SizedBox(width: refSize * 0.02),
+          _buildStatusItem("UTF-8", refSize),
+          SizedBox(width: refSize * 0.02),
+          _buildStatusItem("Dart", refSize),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusItem(String text, double refSize) {
+    return TextWidget(
+      text: text,
+      textColor: ColorClass.white38,
+      fontSize: refSize * 0.0125,
     );
   }
 
   void _copyText() {
-    if (controller.transcribedText.isEmpty) return;
+    if (controller.transcribedText.value.isEmpty) return;
     Clipboard.setData(ClipboardData(text: controller.transcribedText.value));
     Get.snackbar(
       "Magic",
       "Text copied to clipboard",
       colorText: ColorClass.white,
-      backgroundColor: ColorClass.glowPurple.withValues(alpha: 0.8),
+      backgroundColor: ColorClass.neonPurple.withValues(alpha: 0.8),
     );
   }
 
   void _showExportOptions(double refSize) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: ColorClass.buttonBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.description,
-                color: ColorClass.folderIcon,
+    AppDialog.custom(
+      context: context,
+      width: refSize * 0.8,
+      showCloseIcon: true,
+      backgroundColor: ColorClass.darkNavy,
+      borderColor: ColorClass.neonTeal.withValues(alpha: 0.3),
+      padding: EdgeInsets.all(refSize * 0.04),
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.download_rounded,
+                color: ColorClass.neonTeal,
+                size: refSize * 0.05,
               ),
-              title: const TextWidget(
-                text: "Export as Text (.txt)",
+              SizedBox(width: refSize * 0.02),
+              TextWidget(
+                text: "EXPORT TRANSCRIPTION",
                 textColor: ColorClass.white,
-                fontSize: 16,
+                fontSize: refSize * 0.035,
+                fontWeight: FontWeight.bold,
               ),
-              onTap: () async {
-                Get.back();
-                final path = await controller.exportAsText();
-                if (path != null) Get.snackbar("Success", "Saved to $path");
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.code, color: ColorClass.glowBlue),
-              title: const TextWidget(
-                text: "Export as Markdown (.md)",
-                textColor: ColorClass.white,
-                fontSize: 16,
-              ),
-              onTap: () async {
-                Get.back();
-                final path = await controller.exportAsMarkdown();
-                if (path != null) Get.snackbar("Success", "Saved to $path");
-              },
-            ),
-          ],
-        ),
+            ],
+          ),
+          SizedBox(height: refSize * 0.03),
+          DialogOptionTile(
+            icon: Icons.description_outlined,
+            title: "Export as Text (.txt)",
+            subtitle: "Plain text format",
+            color: ColorClass.neonBlue,
+            onTap: () async {
+              Navigator.of(context).pop();
+              final path = await controller.exportAsText();
+              if (path != null) {
+                Get.snackbar(
+                  "Success",
+                  "Saved to $path",
+                  colorText: ColorClass.white,
+                  backgroundColor: ColorClass.green.withValues(alpha: 0.6),
+                );
+              }
+            },
+          ),
+          SizedBox(height: refSize * 0.02),
+          DialogOptionTile(
+            icon: Icons.article_outlined,
+            title: "Export as Markdown (.md)",
+            subtitle: "Formatted markdown",
+            color: ColorClass.neonPurple,
+            onTap: () async {
+              Navigator.of(context).pop();
+              final path = await controller.exportAsMarkdown();
+              if (path != null) {
+                Get.snackbar(
+                  "Success",
+                  "Saved to $path",
+                  colorText: ColorClass.white,
+                  backgroundColor: ColorClass.green.withValues(alpha: 0.6),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -779,5 +890,100 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return "$minutes:$seconds";
+  }
+}
+
+class _MagneticNeonButton extends StatefulWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+  final double refSize;
+  final bool isCompact; // Added for compact mode
+  const _MagneticNeonButton({
+    required this.label,
+    required this.color,
+    required this.onPressed,
+    required this.refSize,
+    this.isCompact = false,
+  });
+  @override
+  State<_MagneticNeonButton> createState() => _MagneticNeonButtonState();
+}
+
+class _MagneticNeonButtonState extends State<_MagneticNeonButton>
+    with SingleTickerProviderStateMixin {
+  Offset _mousePos = Offset.zero;
+  bool _hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    final offset = _hovering ? _mousePos * 0.1 : Offset.zero;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      onHover: (e) {
+        final rb = context.findRenderObject() as RenderBox;
+        final local = rb.globalToLocal(e.position);
+        setState(
+          () => _mousePos = Offset(
+            local.dx - rb.size.width / 2,
+            local.dy - rb.size.height / 2,
+          ),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: Container(
+            height: widget.isCompact ? 36 : null,
+            padding: EdgeInsets.symmetric(
+              vertical: widget.isCompact ? 0 : widget.refSize * 0.03,
+              horizontal: widget.isCompact ? 12 : widget.refSize * 0.04,
+            ),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _hovering
+                  ? widget.color.withValues(alpha: 0.1) // Subtle hover
+                  : ColorClass.transparent,
+              borderRadius: BorderRadius.circular(
+                widget.isCompact ? 6 : widget.refSize * 0.015,
+              ),
+              border: Border.all(
+                color: _hovering
+                    ? widget.color.withValues(alpha: 0.6)
+                    : widget.color.withValues(alpha: 0.3),
+                width: 0.5, // Thin border
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, // Wrap content
+              children: [
+                // Small indicator dot
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: widget.isCompact ? 8 : widget.refSize * 0.02),
+                Flexible(
+                  child: TextWidget(
+                    text: widget.label,
+                    textColor: ColorClass.white70,
+                    fontSize: widget.isCompact ? 11 : widget.refSize * 0.025,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
