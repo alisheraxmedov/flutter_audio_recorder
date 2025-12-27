@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 
-/// A Flutter recreation of the CSS button in this folder.
 class MagicButton extends StatefulWidget {
   final String label;
   final VoidCallback onPressed;
@@ -31,11 +30,7 @@ class _MagicButtonState extends State<MagicButton> {
   bool _pressed = false;
 
   static const _gradient = LinearGradient(
-    colors: [
-      ColorClass.trackGreen,
-      ColorClass.glowPurple,
-      ColorClass.glowBlue,
-    ],
+    colors: [ColorClass.trackGreen, ColorClass.glowPurple, ColorClass.glowBlue],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -82,7 +77,7 @@ class _MagicButtonState extends State<MagicButton> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: _gradient,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(7),
                       ),
                     ),
                   ),
@@ -98,7 +93,7 @@ class _MagicButtonState extends State<MagicButton> {
               padding: EdgeInsets.all(_pressed ? 4 : 2),
               decoration: BoxDecoration(
                 gradient: _gradient,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(7),
               ),
               child: Transform.translate(
                 offset: _pressed ? const Offset(0, 1) : Offset.zero,
@@ -108,13 +103,15 @@ class _MagicButtonState extends State<MagicButton> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: _innerColor.withOpacity(_hovered ? 0.7 : 1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(7),
                   ),
-                  padding: widget.padding,
-                  child: TextWidget(
-                    text: widget.label,
-                    textColor: ColorClass.white,
-                    fontSize: widget.fontSize,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: TextWidget(
+                      text: widget.label,
+                      textColor: ColorClass.white,
+                      fontSize: widget.fontSize,
+                    ),
                   ),
                 ),
               ),
