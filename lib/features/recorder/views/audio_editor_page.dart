@@ -169,6 +169,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
       ),
     );
   }
+
   Widget _buildDesktopLayout(BuildContext context, Size size, double refSize) {
     return Column(
       children: [
@@ -187,7 +188,7 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
                 ),
               ),
 
-              // CENTER (Multi-Track) - Desktop DropTarget 
+              // CENTER (Multi-Track) - Desktop DropTarget
               Expanded(
                 child: drop_helper.buildDropTarget(
                   onFileDrop: (path) => controller.loadFile(path),
@@ -477,7 +478,9 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
             size: refSize * 0.1,
             iconColor: ColorClass.redAccent,
             bgColor: ColorClass.transparent,
-            border: Border.all(color: ColorClass.redAccent.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: ColorClass.redAccent.withValues(alpha: 0.5),
+            ),
             iconSize: refSize * 0.05,
           ),
 
@@ -521,8 +524,13 @@ class _AudioEditorPageState extends State<AudioEditorPage> {
             onTap: () {
               if (controller.activeTrack.filePath.isNotEmpty) {
                 Get.to(
-                  () =>
-                      AiPage(audioPath: controller.activeTrack.filePath.value),
+                  transition: Transition.fadeIn,
+                  duration: Duration(milliseconds: 500),
+                  () {
+                    return AiPage(
+                      audioPath: controller.activeTrack.filePath.value,
+                    );
+                  },
                 );
               } else {
                 Get.snackbar('Error', 'No audio file loaded');
