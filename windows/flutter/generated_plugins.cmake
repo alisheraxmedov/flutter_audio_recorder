@@ -11,6 +11,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_localization
   permission_handler_windows
   record_windows
+  rive_native
   screen_retriever_windows
   share_plus
   url_launcher_windows
