@@ -35,8 +35,31 @@ class ColorClass {
   static const Color sidebarGradientTop = Color(0xFF1A1A2E);
   static const Color sidebarGradientBottom = Color(0xFF0F0F1A);
 
+  // Cyber-Glassmorphism Colors
+  static const Color cyberBackgroundStart = Color(0xFF1A1A2E);
+  static const Color cyberBackgroundEnd = Color(0xFF020205);
+  static const Color neonTeal = Color(0xFF00F2FE);
+  static const Color neonPurple = Color(0xFFBF5AF2);
+  static const Color neonGreen = Color(0xFF32D74B);
+  static const Color neonAmber = Color(0xFFFF9F0A);
+  static const Color neonBlue = Color(0xFF4FACFE);
+  static const Color darkNavy = Color(0xFF020617);
+  static const Color mutedSilver = Color(0xFF94A3B8);
+
   // Track Colors
   static const Color trackBlue = Colors.blueAccent;
   static const Color trackGreen = Colors.greenAccent;
   static const Color trackOrange = Colors.orangeAccent;
+
+  // White variants
+  static const Color white10 = Colors.white10;
+  static const Color white24 = Colors.white24;
+  static const Color white30 = Colors.white30;
+  static const Color white38 = Colors.white38;
+  static const Color white54 = Colors.white54;
+  static const Color white60 = Colors.white60;
+  static const Color white70 = Colors.white70;
+
+  // Success color
+  static const Color green = Colors.green;
 }
