@@ -57,7 +57,7 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     final size = MediaQuery.of(context).size;
     final refSize = size.shortestSide.clamp(300.0, 800.0);
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Deep Slate Navy
+      backgroundColor: ColorClass.deepSlateNavy,
       body: Stack(
         children: [
           SafeArea(
@@ -79,9 +79,7 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
           margin: EdgeInsets.all(refSize * 0.01),
           padding: EdgeInsets.all(refSize * 0.01),
           decoration: BoxDecoration(
-            color: const Color(
-              0xFF1E293B,
-            ).withValues(alpha: 0.5), // Slate 800 transparent
+            color: ColorClass.slate800.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(refSize * 0.01),
             border: Border.all(color: ColorClass.white10, width: 0.5),
           ),
@@ -159,7 +157,7 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
               right: refSize * 0.01,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.3),
+              color: ColorClass.slate800.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(refSize * 0.015),
               border: Border.all(color: ColorClass.white10, width: 0.5),
             ),
@@ -507,23 +505,17 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildAnalysisButtonsVertical(double refSize) {
-    final colors = [
-      ColorClass.neonTeal,
-      ColorClass.neonPurple,
-      ColorClass.neonGreen,
-      ColorClass.neonAmber,
-    ];
     return Column(
       children: List.generate(AnalysisMode.values.length, (index) {
         final mode = AnalysisMode.values[index];
         return Padding(
           padding: EdgeInsets.only(bottom: refSize * 0.01),
-          child: _MagneticNeonButton(
+          child: MagicButton(
             label: controller.getModeDisplayName(mode),
-            color: colors[index % colors.length],
             onPressed: () => controller.analyze(mode),
-            refSize: refSize,
-            isCompact: true,
+            width: refSize * 0.22,
+            height: refSize * 0.045,
+            fontSize: refSize * 0.014,
           ),
         );
       }),
@@ -890,100 +882,5 @@ class _AiPageState extends State<AiPage> with SingleTickerProviderStateMixin {
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return "$minutes:$seconds";
-  }
-}
-
-class _MagneticNeonButton extends StatefulWidget {
-  final String label;
-  final Color color;
-  final VoidCallback onPressed;
-  final double refSize;
-  final bool isCompact; // Added for compact mode
-  const _MagneticNeonButton({
-    required this.label,
-    required this.color,
-    required this.onPressed,
-    required this.refSize,
-    this.isCompact = false,
-  });
-  @override
-  State<_MagneticNeonButton> createState() => _MagneticNeonButtonState();
-}
-
-class _MagneticNeonButtonState extends State<_MagneticNeonButton>
-    with SingleTickerProviderStateMixin {
-  Offset _mousePos = Offset.zero;
-  bool _hovering = false;
-  @override
-  Widget build(BuildContext context) {
-    final offset = _hovering ? _mousePos * 0.1 : Offset.zero;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      onHover: (e) {
-        final rb = context.findRenderObject() as RenderBox;
-        final local = rb.globalToLocal(e.position);
-        setState(
-          () => _mousePos = Offset(
-            local.dx - rb.size.width / 2,
-            local.dy - rb.size.height / 2,
-          ),
-        );
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: Container(
-            height: widget.isCompact ? 36 : null,
-            padding: EdgeInsets.symmetric(
-              vertical: widget.isCompact ? 0 : widget.refSize * 0.03,
-              horizontal: widget.isCompact ? 12 : widget.refSize * 0.04,
-            ),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _hovering
-                  ? widget.color.withValues(alpha: 0.1) // Subtle hover
-                  : ColorClass.transparent,
-              borderRadius: BorderRadius.circular(
-                widget.isCompact ? 6 : widget.refSize * 0.015,
-              ),
-              border: Border.all(
-                color: _hovering
-                    ? widget.color.withValues(alpha: 0.6)
-                    : widget.color.withValues(alpha: 0.3),
-                width: 0.5, // Thin border
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min, // Wrap content
-              children: [
-                // Small indicator dot
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: widget.color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(width: widget.isCompact ? 8 : widget.refSize * 0.02),
-                Flexible(
-                  child: TextWidget(
-                    text: widget.label,
-                    textColor: ColorClass.white70,
-                    fontSize: widget.isCompact ? 11 : widget.refSize * 0.025,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

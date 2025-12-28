@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:recorder/core/constants/app_colors.dart';
 import 'package:recorder/features/recorder/controllers/audio_editor_controller.dart';
+import 'package:recorder/features/recorder/widgets/app_dialog.dart';
 import 'package:recorder/features/recorder/widgets/text_widget.dart';
 
 class FilesPanelContent extends StatelessWidget {
@@ -38,8 +39,7 @@ class FilesPanelContent extends StatelessWidget {
             if (!hasLoadedTracks) {
               return Center(
                 child: TextWidget(
-                  text:
-                      "No tracks loaded.\nDrag & Drop files or Double Click on track slots.",
+                  text: "No tracks loaded.\nDrag & Drop files or Double Click on track slots.",
                   fontSize: refSize * 0.02,
                   textColor: ColorClass.textSecondary,
                   textAlign: TextAlign.center,
@@ -62,7 +62,7 @@ class FilesPanelContent extends StatelessWidget {
                 return Container(
                   padding: EdgeInsets.all(refSize * 0.02),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: ColorClass.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: color.withValues(alpha: 0.5)),
                   ),
@@ -106,7 +106,7 @@ class FilesPanelContent extends StatelessWidget {
           decoration: InputDecoration(
             isDense: true,
             filled: true,
-            fillColor: Colors.black.withValues(alpha: 0.3),
+            fillColor: ColorClass.black.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderSide: BorderSide(
                 color: ColorClass.white.withValues(alpha: 0.1),
@@ -139,7 +139,7 @@ class FilesPanelContent extends StatelessWidget {
           () => Container(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: ColorClass.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
@@ -153,7 +153,69 @@ class FilesPanelContent extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => controller.selectExportFolder(),
+                  onTap: () {
+                    AppDialog.custom(
+                      context: Get.context!,
+                      width: refSize * 0.8,
+                      showCloseIcon: true,
+                      backgroundColor: ColorClass.darkNavy,
+                      borderColor: ColorClass.glowBlue.withValues(alpha: 0.3),
+                      padding: EdgeInsets.all(refSize * 0.04),
+                      body: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.folder_open,
+                                color: ColorClass.glowBlue,
+                                size: refSize * 0.048,
+                              ),
+                              SizedBox(width: refSize * 0.02),
+                              TextWidget(
+                                text: "EXPORT PATH",
+                                textColor: ColorClass.white,
+                                fontSize: refSize * 0.032,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: refSize * 0.032),
+                          Container(
+                            padding: EdgeInsets.all(refSize * 0.024),
+                            decoration: BoxDecoration(
+                              color: ColorClass.black.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(
+                                refSize * 0.016,
+                              ),
+                              border: Border.all(
+                                color: ColorClass.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            child: TextWidget(
+                              text: controller.exportPath.value.isEmpty
+                                  ? "No path selected"
+                                  : controller.exportPath.value,
+                              textColor: ColorClass.textSecondary,
+                              fontSize: refSize * 0.024,
+                            ),
+                          ),
+                          SizedBox(height: refSize * 0.032),
+                          DialogOptionTile(
+                            icon: Icons.drive_file_move_outline,
+                            title: "Change Export Path",
+                            subtitle: "Select a new folder for exports",
+                            color: ColorClass.glowBlue,
+                            onTap: () {
+                              Get.back();
+                              controller.selectExportFolder();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                   child: Icon(
                     Icons.folder_open,
                     size: refSize * 0.045,

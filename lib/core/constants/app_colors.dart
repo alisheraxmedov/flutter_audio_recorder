@@ -44,6 +44,8 @@ class ColorClass {
   static const Color neonAmber = Color(0xFFFF9F0A);
   static const Color neonBlue = Color(0xFF4FACFE);
   static const Color darkNavy = Color(0xFF020617);
+  static const Color deepSlateNavy = Color(0xFF0F172A); // AI Page background
+  static const Color slate800 = Color(0xFF1E293B); // AI Page sidebar/container
   static const Color mutedSilver = Color(0xFF94A3B8);
 
   // Track Colors
